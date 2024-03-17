@@ -1,4 +1,4 @@
-[<img alt="KnowledgeBase — open-source data management application" width="400px" src="https://www.google.com/imgres?imgurl=https%3A%2F%2Fwww.dqglobal.com%2Fwp-content%2Fuploads%2F2017%2F07%2FData-Management-1100x917.jpg&tbnid=B2uFY0YxSbWMjM&vet=12ahUKEwjjtrunlfuEAxWxQFUIHcmEA4IQMygGegQIARBi..i&imgrefurl=https%3A%2F%2Fwww.dqglobal.com%2Fblog%2Fdata-management-made-easy%2F&docid=4iQUT7OIP1h7uM&w=1100&h=917&q=data%20management&client=ubuntu-chr&ved=2ahUKEwjjtrunlfuEAxWxQFUIHcmEA4IQMygGegQIARBi" />](https://clickhouse.com?utm_source=github)
+[<img alt="KnowledgeBase — open-source data management application" width="400px" src="https://www.dqglobal.com/wp-content/uploads/2017/07/Data-Management.jpg" />](https://google.com/)
 
 KnowledgeBase is an open-source data management application, that allow manage all of your data from other different services. 
 
