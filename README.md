@@ -4,7 +4,10 @@ KnowledgeBase is an open-source data management application, that allow manage a
 
 ## How To Install (Linux, macOS, FreeBSD)
 ```
-...
+1. mkdir cmake-build-release 
+2. cd cmake-build-release(debug/relwithdebug)
+3. cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=/usr/bin/gcc-11 -DCMAKE_CXX_COMPILER=/usr/bin/g++-11
+4. ninja
 ```
 
 ## Useful Links

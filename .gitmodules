@@ -1,0 +1,30 @@
+[submodule "poco"]
+	path = poco
+	url = https://github.com/pocoproject/poco.git
+[submodule "rapidjson"]
+	path = rapidjson
+	url = https://github.com/Tencent/rapidjson.git
+[submodule "contrib/rapidjson"]
+	path = contrib/rapidjson
+	url = https://github.com/ClickHouse/rapidjson.git
+[submodule "contrib/double-conversion"]
+	path = contrib/double-conversion
+	url = https://github.com/ClickHouse/double-conversion.git
+[submodule "contrib/fmtlib"]
+	path = contrib/fmtlib
+	url = https://github.com/fmtlib/fmt.git
+[submodule "contrib/curl"]
+	path = contrib/curl
+	url = https://github.com/curl/curl.git
+[submodule "contrib/c-ares"]
+	path = contrib/c-ares
+	url = https://github.com/c-ares/c-ares.git
+[submodule "contrib/lz4"]
+	path = contrib/lz4
+	url = https://github.com/lz4/lz4.git
+[submodule "contrib/zlib-ng"]
+	path = contrib/zlib-ng
+	url = https://github.com/ClickHouse/zlib-ng.git
+[submodule "contrib/openssl"]
+	path = contrib/openssl
+	url = https://github.com/ClickHouse/openssl.git
