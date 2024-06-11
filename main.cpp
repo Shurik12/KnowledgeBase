@@ -19,6 +19,7 @@ using Poco::Message;
 
 int main()
 {
+/// Loggers initializations
 ///-------------------------------------------------------------------------------------------------------------------------------------------
     ///ToDo вынести в отдельную функцию создание логгера и доработать
     // set up two channel chains - one to the
@@ -39,15 +40,20 @@ int main()
 ///-------------------------------------------------------------------------------------------------------------------------------------------
 
 	Request request {};
+    request.processConfig();
 	User user {request.getUser()};
     string user_id = user.getId();
-	vector<Playlist> playlists {user.getUserPlaylists()};
-    for (Playlist playlist : playlists)
-        playlist.print();
-    Playlist playlist = playlists[5];
-    playlist.downloadPlaylist();
-//	vector<Track> tracks {playlist.getPlaylistTracks()};
-//    Track track = tracks[2];
+//	user.getUserPlaylists();
+    user.getTracksWithoutPlaylist();
+
+//    for (Playlist playlist : playlists)
+//        playlist.print();
+//    Playlist playlist = user.playlists[5];
+//    playlist.downloadPlaylist();
+//	playlist.getPlaylistTracks();
+//    Track track = playlist.tracks[2];
+//    track.getSupplement();
+//    cout << track.supplement->getLyrics() << "\n";
 //	DownloadInfo download_info = track.getDownloadInfo();
 //    string url = download_info.getDownloadInfoUrl();
 //	track.downloadTrack(url);

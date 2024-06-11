@@ -29,6 +29,8 @@ public:
 
 
     User getUser();
+    void processConfig();
+
     void makeRequest(string & params, Document & document1);
     void makeRequest(const string & url, XMLDocument & xml_response);
     void makePostRequest(string & url_postfix, map<string, string> & body, Document & document);

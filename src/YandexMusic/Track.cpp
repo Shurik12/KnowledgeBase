@@ -3,6 +3,7 @@
 #include <Poco/MD5Engine.h>
 #include <Poco/DigestStream.h>
 
+#include <memory>
 #include <utility>
 
 #define SIGN_SALT "XGRlBW9FXlekgbPrRHuSiA"
@@ -16,6 +17,7 @@ Track::Track(
 	, title(std::move(title_))
 	, artists(std::move(artists_))
     , available(available_)
+    , supplement()
 {}
 
 
@@ -108,5 +110,44 @@ DownloadInfo Track::getDownloadInfo()
         }
     }
     return download_info;
+}
+
+void Track::getSupplement()
+{
+//    Supplement supplement;
+    Document document;
+    Request request;
+    string url {"tracks/"+id+"/supplement"};
+    request.makeRequest(url, document);
+    const Value& result = document["result"];
+    assert(result.IsObject());
+
+    supplement = make_shared<Supplement>();
+
+    /// Keys {id: string, lyrics: object}
+    for (auto& key : result.GetObject())
+    {
+        if (string(key.name.GetString()) == "lyrics")
+            for (auto& key1 : key.value.GetObject())
+            {
+                if (string(key1.name.GetString()) == "id")
+                    supplement->setId(key1.value.GetInt());
+
+                if (string(key1.name.GetString()) == "lyrics")
+                    supplement->setLyrics(key1.value.GetString());
+
+                if (string(key1.name.GetString()) == "fullLyrics")
+                    supplement->setFullLyrics(key1.value.GetString());
+
+                if (string(key1.name.GetString()) == "textLanguage")
+                    supplement->setTextLanguage(key1.value.GetString());
+
+                if (string(key1.name.GetString()) == "showTranslation")
+                    supplement->setShowTranslation(key1.value.GetBool());
+
+                if (string(key1.name.GetString()) == "hasRights")
+                    supplement->setHasRights(key1.value.GetBool());
+            }
+    }
 }
 

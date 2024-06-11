@@ -3,6 +3,22 @@
 
 #define SIGN_SALT "XGRlBW9FXlekgbPrRHuSiA"
 
+void Request::processConfig()
+{
+    consoleLogger.debug(fmt::format("Processing configuration file '/home/alex/Git/KnowledgeBase/config.xml'."));
+    XMLDocument xml_doc;
+    XMLError eResult = xml_doc.LoadFile("/home/alex/Git/KnowledgeBase/config.xml");
+    if (eResult != XML_SUCCESS)
+        cout << "Error!\n";
+
+    XMLNode * root = xml_doc.FirstChild();
+    if (root == nullptr)
+        cout << "Error!\n";
+
+    auto token = root->FirstChildElement("token")->GetText();
+    Curl::setToken(token);
+}
+
 User Request::getUser()
 {
 	string url {url_prefix};
@@ -17,7 +33,7 @@ User Request::getUser()
 void Request::makePostRequest(string & url_postfix, map<string, string> & body, Document & document)
 {
     string url {url_prefix + url_postfix};
-    Curl::post(url, body);
+    auto res = Curl::post(url, body);
     document.Parse(Curl::buffer.c_str());
 }
 

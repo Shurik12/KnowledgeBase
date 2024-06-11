@@ -4,9 +4,6 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = https://github.com/Tencent/rapidjson.git
-[submodule "contrib/rapidjson"]
-	path = contrib/rapidjson
-	url = https://github.com/ClickHouse/rapidjson.git
 [submodule "contrib/double-conversion"]
 	path = contrib/double-conversion
 	url = https://github.com/ClickHouse/double-conversion.git
@@ -28,3 +25,6 @@
 [submodule "contrib/openssl"]
 	path = contrib/openssl
 	url = https://github.com/ClickHouse/openssl.git
+[submodule "contrib/rapidjson"]
+	path = contrib/rapidjson
+	url = https://github.com/ClickHouse/rapidjson.git

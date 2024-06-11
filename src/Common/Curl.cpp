@@ -3,52 +3,54 @@
 //have to re-declare static members at file level
 char Curl::errorBuffer[CURL_ERROR_SIZE];
 string Curl::buffer;
- 
+string Curl::token;
+
 //---------------------------------------------------------------------------
 string Curl::get(const string &url)
 {
-    bool   usepost=false;
-    string params ="";
-    return easycurl(url, usepost, params);
+    bool use_post{false};
+    string params;
+    return easycurl(url, use_post, params);
 }
 //---------------------------------------------------------------------------
 string Curl::get(const string &url, map<string, string> &m)
 {
-    bool usepost=false;
-    string poststring="";
+    bool use_post{false};
+    string post_string;
  
     map<string, string>::iterator curr,end;
-    for(curr = m.begin(), end = m.end(); curr != end; curr++)
+    for(curr = m.begin(), end = m.end(); curr != end; ++curr)
     {
-        poststring+= curr->first + "=" + Curl::urlencode(curr->second)+ "&";
+        post_string += curr->first + "=" + Curl::urlencode(curr->second)+ "&";
     }
  
-    return easycurl(url, usepost, poststring);
+    return easycurl(url, use_post, post_string);
 }
 //---------------------------------------------------------------------------
 string Curl::post(const string &url, map<string, string> &m)
 {
-    bool usepost=true;
-    string poststring="";
+    bool use_post{true};
+    string post_string;
  
     map<string, string>::iterator curr,end;
     for(curr = m.begin(), end = m.end(); curr != end; curr++)
     {
-        poststring+= curr->first + "=" + Curl::urlencode(curr->second)+ "&";
+        post_string+= curr->first + "=" + Curl::urlencode(curr->second)+ "&";
     }
  
-    return easycurl(url, usepost, poststring);
+    return easycurl(url, use_post, post_string);
 }
 //---------------------------------------------------------------------------
-string Curl::easycurl(const string &url, bool post, const string &postparamstring)
+string Curl::easycurl(const string &url, bool post, const string & post_param_string)
 {
  
     // Our curl objects
     buffer = "";
     errorBuffer[0] = 0;
 
-    struct curl_slist *headers=NULL; /* init to NULL is important */
-    headers = curl_slist_append(headers, "Authorization: OAuth "); 
+    struct curl_slist *headers=nullptr; /* init to NULL is important */
+    string authorization = "Authorization: OAuth " + token;
+    headers = curl_slist_append(headers, authorization.c_str());
     CURL *curl;
     CURLcode result;
  
@@ -67,7 +69,7 @@ string Curl::easycurl(const string &url, bool post, const string &postparamstrin
       if (post)
       {
           curl_easy_setopt(curl, CURLOPT_POST, 1);
-          curl_easy_setopt(curl, CURLOPT_POSTFIELDS,postparamstring.c_str());
+          curl_easy_setopt(curl, CURLOPT_POSTFIELDS,post_param_string.c_str());
       }
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
       curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)");
@@ -100,7 +102,7 @@ string Curl::easycurl(const string &url, bool post, const string &postparamstrin
 int Curl::writer(char *data, size_t size, size_t nmemb, string *buffer)
 {
   int result = 0;
-  if (buffer != NULL)
+  if (buffer != nullptr)
   {
     buffer->append(data, size * nmemb);
     result = size * nmemb;
@@ -147,3 +149,8 @@ string Curl::char2hex( char dec )
     return r;
 }
 //-----------------------------------------------------------------------------
+
+void Curl::setToken(const string & token_)
+{
+    Curl::token = token_;
+}

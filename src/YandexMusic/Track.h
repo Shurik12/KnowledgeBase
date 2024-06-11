@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <YandexMusic/DownloadInfo.h>
+#include <YandexMusic/Supplement.h>
 #include <Common/tinyxml2.h>
 
 using namespace std;
@@ -28,10 +30,14 @@ public:
 	[[nodiscard]] vector<string> getArtists() const;
     [[nodiscard]] bool getAvailable() const;
 
-    void getTracks(vector<string> & track_ids);
-    static void getSign(string & download_url, const XMLDocument & xml_response);
-    void downloadTrack(string & lyrics_dir, string & tracks_dir);
     DownloadInfo getDownloadInfo();
+    void getSupplement();
+
+    void downloadTrack(string & lyrics_dir, string & tracks_dir);
+
+    static void getSign(string & download_url, const XMLDocument & xml_response);
+
+    shared_ptr<Supplement> supplement;
 
 private:
 

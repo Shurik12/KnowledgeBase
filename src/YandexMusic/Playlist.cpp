@@ -56,7 +56,7 @@ void Playlist::downloadPlaylist()
 {
     consoleLogger.information(fmt::format("Playlist to download: {}", title));
     string playlist_directory = output + "/" + title;
-    vector<Track> tracks = getPlaylistTracks();
+    getPlaylistTracks();
 
     string tracks_directory = playlist_directory + "/tracks";
     string lyrics_directory = playlist_directory + "/lyrics";
@@ -120,7 +120,7 @@ void Playlist::downloadPlaylists(vector<Playlist> & playlists)
         downloadPlaylist();
 }
 
-vector<Track> Playlist::getPlaylistTracks()
+void Playlist::getPlaylistTracks()
 {
     Document document;
     Request request;
@@ -128,13 +128,12 @@ vector<Track> Playlist::getPlaylistTracks()
     request.makeRequest(url, document);
     SizeType i, j;
 
-    vector<Track> processed_tracks {};
-    const Value& tracks = document["result"]["tracks"];
-    assert(tracks.IsArray());
-    for (i = 0; i < tracks.Size(); ++i) // Uses SizeType instead of size_t
+    const Value& rTracks = document["result"]["tracks"];
+    assert(rTracks.IsArray());
+    for (i = 0; i < rTracks.Size(); ++i) // Uses SizeType instead of size_t
     {
-        vector<string> processed_artists {};
-        const Value& track = tracks[i]["track"];
+        vector<string> processed_artists;
+        const Value& track = rTracks[i]["track"];
         for (j = 0; j < track["artists"].Size(); ++j)
             for (auto& artist : track["artists"][j].GetObject())
                 if (string(artist.name.GetString()) == "name")
@@ -146,8 +145,7 @@ vector<Track> Playlist::getPlaylistTracks()
                 processed_artists,
                 track["available"].GetBool());
 
-        processed_tracks.push_back(processed_track);
+        processed_artists.clear();
+        tracks.emplace_back(processed_track);
     }
-
-    return processed_tracks;
 }

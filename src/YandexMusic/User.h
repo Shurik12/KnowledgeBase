@@ -1,7 +1,11 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+#include <algorithm>
+#include <set>
 #include <YandexMusic/Playlist.h>
+#include <Common/tinyxml2.h>
 
 using namespace std;
 
@@ -13,9 +17,18 @@ public:
 	explicit User(string  id_);
     ~User()= default;
     [[nodiscard]] string getId() const;
-    vector<Playlist> getUserPlaylists();
+    void getUserPlaylists();
     static void getTracks(vector<Track> & tracks);
+    static vector<Track> getTracks(vector<string> & track_ids);
+    void getLikeTracks();
     static void downloadTracks(vector<Track> & tracks, string & lyrics_dir, string & tracks_dir);
+    void getTracksWithoutPlaylist();
+
+    vector<Playlist> playlists;
+    vector<Track> like_tracks;
+
+    Logger& fileLogger = Logger::get("FileLogger");
+    Logger& consoleLogger = Logger::get("ConsoleLogger");
 
 private:
 
@@ -23,6 +36,4 @@ private:
 	string client_id;
 	string client_secret;
 	string password;
-	string auth_token;
-
 };

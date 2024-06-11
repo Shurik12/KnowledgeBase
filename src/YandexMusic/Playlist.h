@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <unordered_set>
 #include <Poco/Logger.h>
 #include <fmt/format.h>
 #include <YandexMusic/Track.h>
@@ -37,7 +38,10 @@ public:
 //    void deleteUserPlaylist();
     void downloadPlaylist();
     void downloadPlaylists(vector<Playlist> & playlists);
-    vector<Track> getPlaylistTracks();
+    void getPlaylistTracks();
+
+    vector<Track> tracks;
+
 
 private:
 
