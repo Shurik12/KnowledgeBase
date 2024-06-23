@@ -12,10 +12,12 @@ Track::Track(
 	string  id_,
 	string  title_,
     vector<string> artists_,
+    vector<int> albums_,
     bool available_)
 	: id(std::move(id_))
 	, title(std::move(title_))
 	, artists(std::move(artists_))
+    , albums(std::move(albums_))
     , available(available_)
     , supplement()
 {}
@@ -40,6 +42,11 @@ bool Track::getAvailable() const
 vector<string> Track::getArtists() const
 {
     return artists;
+}
+
+vector<int> Track::getAlbums() const
+{
+    return albums;
 }
 
 void Track::getSign(string & download_url, const XMLDocument & xml_response)
@@ -71,9 +78,9 @@ void Track::downloadTrack(string & lyrics_dir, string & tracks_dir)
     name = name.size()>100 ? name.substr(0, 100)+".mp3" : name + ".mp3";
 
     /// Get track download info
-    DownloadInfo download_info = getDownloadInfo();
-    string url = download_info.getDownloadInfoUrl();
-    string bitrate = download_info.getBitrateInKbps();
+    getDownloadInfo();
+    string url = download_info->getDownloadInfoUrl();
+    string bitrate = download_info->getBitrateInKbps();
     cout << bitrate << "\n";
 
     XMLDocument xml_response;
@@ -91,9 +98,9 @@ void Track::downloadTrack(string & lyrics_dir, string & tracks_dir)
     fclose(fp);
 }
 
-DownloadInfo Track::getDownloadInfo()
+void Track::getDownloadInfo()
 {
-    DownloadInfo download_info;
+    download_info = make_shared<DownloadInfo>();
     Document document;
     Request request;
     string url {"tracks/"+id+"/download-info"};
@@ -105,11 +112,10 @@ DownloadInfo Track::getDownloadInfo()
         string k = result[i]["codec"].GetString();
         if ( k == "mp3")
         {
-            download_info.setDownloadInfoUrl(result[i]["downloadInfoUrl"].GetString());
-            download_info.setBitrateInKbps(to_string(result[i]["bitrateInKbps"].GetInt()));
+            download_info->setDownloadInfoUrl(result[i]["downloadInfoUrl"].GetString());
+            download_info->setBitrateInKbps(to_string(result[i]["bitrateInKbps"].GetInt()));
         }
     }
-    return download_info;
 }
 
 void Track::getSupplement()
@@ -151,3 +157,17 @@ void Track::getSupplement()
     }
 }
 
+void Track::print()
+{
+    cout << "Id: " << this->id << "\n";
+    cout << "Title: " << this->title << "\n";
+    cout << "Artists: ";
+    for (const auto& artist : this->artists)
+        cout << artist << "\t";
+    cout << "\n";
+    cout << "Artists: ";
+    for (auto album : this->albums)
+        cout << album << "\t";
+    cout << "\n";
+    cout << "Available: " << this->available << "\n";
+}

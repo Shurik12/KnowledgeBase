@@ -1,5 +1,13 @@
 #pragma once
 
+#include <fstream>
+
+#include "Poco/Timestamp.h"
+#include "Poco/Timezone.h"
+#include "Poco/DateTimeFormatter.h"
+#include "Poco/DateTimeFormat.h"
+#include <rapidjson/document.h>
+
 #include <string>
 #include <unordered_map>
 #include <algorithm>
@@ -8,6 +16,7 @@
 #include <Common/tinyxml2.h>
 
 using namespace std;
+using namespace rapidjson;
 
 class User
 {
@@ -23,6 +32,15 @@ public:
     void getLikeTracks();
     static void downloadTracks(vector<Track> & tracks, string & lyrics_dir, string & tracks_dir);
     void getTracksWithoutPlaylist();
+    void printUserPlaylists();
+
+    Playlist playlistObjectFromResponse(const Value & response);
+
+    Playlist createPlaylist(const string & title);
+    void changePlaylistName(const int & kind, const string & new_title);
+    void deletePlaylist(const int & kind);
+
+    Playlist getPlaylist(const int & kind);
 
     vector<Playlist> playlists;
     vector<Track> like_tracks;

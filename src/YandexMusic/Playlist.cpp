@@ -4,18 +4,20 @@
 #include <set>
 #include <utility>
 
+string Playlist::output_folder;
+
 Playlist::Playlist(
 	string  title_,
-	string  revision_,
-	string  trackCount_,
+	int  revision_,
+	int  trackCount_,
 	string  playlistUuid_,
-	string  kind_,
+	int  kind_,
     string  userId_)
 	: title(std::move(title_))
-	, revision(std::move(revision_))
-	, trackCount(std::move(trackCount_))
+	, revision(revision_)
+	, trackCount(trackCount_)
 	, playlistUuid(std::move(playlistUuid_))
-	, kind(std::move(kind_))
+	, kind(kind_)
     , userId(std::move(userId_))
 {}
 
@@ -24,27 +26,55 @@ string Playlist::getTitle() const
 	return title;
 }
 
-string Playlist::getRevision() const
+void Playlist::setTitle(const string & title_)
+{
+    title = title_;
+}
+
+int Playlist::getRevision() const
 {
 	return revision;
 }
 
+void Playlist::setRevision(const int & revision_)
+{
+    revision = revision_;
+}
 
-string Playlist::getTrackCount() const
+
+int Playlist::getTrackCount() const
 {
 	return trackCount;
 }
 
+void Playlist::setTrackCount(const int & trackCount_)
+{
+    trackCount = trackCount_;
+}
 
 string Playlist::getPlaylistUuid() const
 {
 	return playlistUuid;
 }
 
+void Playlist::setPlaylistUuid(const string & playlistUuid_)
+{
+    playlistUuid = playlistUuid_;
+}
 
-string Playlist::getKind() const
+int Playlist::getKind() const
 {
 	return kind;
+}
+
+void Playlist::setKind(const int & kind_)
+{
+    kind = kind_;
+}
+
+void Playlist::setId(const string & id_)
+{
+    userId = id_;
 }
 
 void Playlist::print()
@@ -55,27 +85,15 @@ void Playlist::print()
 void Playlist::downloadPlaylist()
 {
     consoleLogger.information(fmt::format("Playlist to download: {}", title));
-    string playlist_directory = output + "/" + title;
+    string playlist_folder = output_folder + "/" + title;
+    filesystem::create_directories(playlist_folder);
     getPlaylistTracks();
 
-    string tracks_directory = playlist_directory + "/tracks";
-    string lyrics_directory = playlist_directory + "/lyrics";
+    string tracks_folder = playlist_folder + "/tracks";
+    string lyrics_folder = playlist_folder + "/lyrics";
 
-    /// Get list directory
-    set<string> list_directories;
-    for (const auto & entry : fs::directory_iterator(output))
-    {
-        consoleLogger.information(fmt::format("Directory: {}", entry.path().generic_string()));
-        list_directories.emplace(entry.path().generic_string());
-    }
-
-    /// Create playlist directory if not exists
-    if (auto search = list_directories.find(title); search == list_directories.end())
-    {
-        fs::create_directory(playlist_directory);
-        fs::create_directory(tracks_directory);
-        fs::create_directory(lyrics_directory);
-    }
+    filesystem::create_directories(tracks_folder);
+    filesystem::create_directories(lyrics_folder);
 
     /// Get already loaded tracks (already on yandex disk and file system)
     if (tracks.empty())
@@ -89,7 +107,7 @@ void Playlist::downloadPlaylist()
     /// Get list directory
     set<string> loaded_tracks;
     string file_name;
-    for (const auto & entry : fs::directory_iterator(tracks_directory))
+    for (const auto & entry : fs::directory_iterator(tracks_folder))
     {
         file_name = entry.path().generic_string();
         file_name = file_name.substr(file_name.find_last_of('/')+1);
@@ -104,14 +122,14 @@ void Playlist::downloadPlaylist()
     {
         auto artists = track.getArtists();
         string name = artists.empty() ? track.getTitle() : artists[0] + " - " + track.getTitle();
-        name = name.size()>100 ? name.substr(0, 100)+".mp3" : name + ".mp3";
+        name = name.size() > 100 ? name.substr(0, 100)+".mp3" : name + ".mp3";
         if (auto search = loaded_tracks.find(name); search == loaded_tracks.end())
         {
             tracks_for_download.emplace_back(track);
         }
     }
     consoleLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
-    User::downloadTracks(tracks_for_download, lyrics_directory, tracks_directory);
+    User::downloadTracks(tracks_for_download, lyrics_folder, tracks_folder);
 }
 
 void Playlist::downloadPlaylists(vector<Playlist> & playlists)
@@ -124,7 +142,7 @@ void Playlist::getPlaylistTracks()
 {
     Document document;
     Request request;
-    string url {"users/"+userId+"/playlists/"+kind};
+    string url {"users/"+userId+"/playlists/"+ to_string(kind)};
     request.makeRequest(url, document);
     SizeType i, j;
 
@@ -133,19 +151,50 @@ void Playlist::getPlaylistTracks()
     for (i = 0; i < rTracks.Size(); ++i) // Uses SizeType instead of size_t
     {
         vector<string> processed_artists;
+        vector<int> processed_albums;
+
         const Value& track = rTracks[i]["track"];
+
         for (j = 0; j < track["artists"].Size(); ++j)
+        {
+            /// Processing artists
             for (auto& artist : track["artists"][j].GetObject())
                 if (string(artist.name.GetString()) == "name")
                     processed_artists.emplace_back(artist.value.GetString());
 
+            /// Processing albums
+            for (auto& album : track["albums"][j].GetObject())
+                if (string(album.name.GetString()) == "id")
+                    processed_albums.emplace_back(album.value.GetInt());
+        }
         Track processed_track(
                 track["id"].GetString(),
                 track["title"].GetString(),
                 processed_artists,
+                processed_albums,
                 track["available"].GetBool());
 
+        artists.insert(processed_artists[0]);
         processed_artists.clear();
         tracks.emplace_back(processed_track);
     }
+}
+
+
+void Playlist::setOutput(const string & output_folder_)
+{
+    Playlist::output_folder = output_folder_;
+}
+
+
+void Playlist::addTracksToPlaylist(const vector<Track> & tracks)
+{
+    Document document;
+    Request request;
+
+    string url {"users/" + userId + "/playlists/" + to_string(kind) + "/change-relative"};
+    map<string, string> body;
+    body["revision"] = to_string(revision);
+    body["diff"] = fmt::format(R"({{"diff":{{"op":"insert","at":{},"tracks":[{{"id":"{}","albumId":"{}"}}]}}}})", 0, tracks[0].getId(), tracks[0].getAlbums()[0]);
+    request.makePostRequest(url, body, document);
 }

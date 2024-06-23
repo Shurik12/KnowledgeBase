@@ -16,7 +16,9 @@ void Request::processConfig()
         cout << "Error!\n";
 
     auto token = root->FirstChildElement("token")->GetText();
+    auto output_folder = root->FirstChildElement("output_folder")->GetText();
     Curl::setToken(token);
+    Playlist::setOutput(output_folder);
 }
 
 User Request::getUser()

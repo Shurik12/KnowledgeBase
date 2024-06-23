@@ -39,23 +39,46 @@ int main()
     consoleLogger.information(fmt::format("\nStart program execution{}", "!"));
 ///-------------------------------------------------------------------------------------------------------------------------------------------
 
+    int flag = 3;
+
 	Request request {};
     request.processConfig();
 	User user {request.getUser()};
     string user_id = user.getId();
-//	user.getUserPlaylists();
-    user.getTracksWithoutPlaylist();
 
-//    for (Playlist playlist : playlists)
-//        playlist.print();
-//    Playlist playlist = user.playlists[5];
-//    playlist.downloadPlaylist();
-//	playlist.getPlaylistTracks();
-//    Track track = playlist.tracks[2];
+    switch (flag)
+    {
+        case 1:
+            user.getUserPlaylists();
+            user.printUserPlaylists();
+            break;
+        case 2:
+            user.getTracksWithoutPlaylist();
+            break;
+        case 3:
+        {
+            Playlist playlist {user.createPlaylist("Test3")};
+            user.changePlaylistName(playlist.getKind(), "Test4");
+            user.getLikeTracks();
+            playlist.addTracksToPlaylist(user.like_tracks);
+            user.deletePlaylist(playlist.getKind());
+            break;
+        }
+
+        case 4:
+        {
+            user.getUserPlaylists();
+            auto playlist = user.playlists[0];
+            playlist.getPlaylistTracks();
+            auto track = playlist.tracks[0];
+            track.print();
+        }
+
+        default:
+            cout << "Nothing to do\n";
+    }
 //    track.getSupplement();
 //    cout << track.supplement->getLyrics() << "\n";
-//	DownloadInfo download_info = track.getDownloadInfo();
-//    string url = download_info.getDownloadInfoUrl();
-//	track.downloadTrack(url);
-	return 0;
+
+    return 0;
 }

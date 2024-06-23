@@ -19,39 +19,52 @@ class Playlist
 
 public:
 
-	Playlist(
+    Playlist() = default;
+
+    Playlist(
 		string  title_,
-		string  revision_,
-		string  trackCount_,
+		int  revision_,
+		int  trackCount_,
 		string  playlistUuid_,
-		string  kind_,
+		int  kind_,
         string  userId_);
 
 	~Playlist()= default;
     void print();
 	
 	[[nodiscard]] string getTitle() const;
-	[[nodiscard]] string getRevision() const;
-	[[nodiscard]] string getTrackCount() const;
+    void setTitle(const string & title_);
+	[[nodiscard]] int getRevision() const;
+    void setRevision(const int & revision_);
+	[[nodiscard]] int getTrackCount() const;
+    void setTrackCount(const int & trackCount_);
 	[[nodiscard]] string getPlaylistUuid() const;
-	[[nodiscard]] string getKind() const;
+    void setPlaylistUuid(const string & playlistUuid_);
+	[[nodiscard]] int getKind() const;
+    void setKind(const int & kind_);
+    void setId(const string & id_);
+
 //    void deleteUserPlaylist();
     void downloadPlaylist();
     void downloadPlaylists(vector<Playlist> & playlists);
     void getPlaylistTracks();
+    void addTracksToPlaylist(const vector<Track> & tracks);
+
+    static void setOutput(const string & output_);
 
     vector<Track> tracks;
-
+    unordered_set<string> artists;
 
 private:
 
 	string title;
-	string revision;
-	string trackCount;
+	int revision;
+	int trackCount {};
 	string playlistUuid;
-	string kind;
+	int kind {};
     string userId;
-    string output {"/home/alex/Git/KnowledgeBase/cmake-build-debug/Music"};
+
+    static string output_folder;
     Logger& fileLogger = Logger::get("FileLogger");
     Logger& consoleLogger = Logger::get("ConsoleLogger");
 

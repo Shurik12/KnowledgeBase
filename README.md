@@ -17,3 +17,9 @@ KnowledgeBase is an open-source data management application, that allow manage a
 ## Upcoming Events
 
 * [**Presentation**](https://google.com/) - ????
+
+**Map of methods:**
+1. getUserPlaylists()
+2. getTracksWithoutPlaylist()
+3. downloadPlaylist()
+4. 
