@@ -1,0 +1,5 @@
+<knowledgebase>
+	<token>yandex music token</token>
+	<output_folder>/home/user/cmake-build-debug/Music/data</output_folder>
+	<log_folder>/home/user/cmake-build-debug/Music/log</log_folder>
+</knowledgebase>
