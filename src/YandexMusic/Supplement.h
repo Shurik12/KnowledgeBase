@@ -23,7 +23,10 @@ public:
 
 	~Supplement()= default;
 
+    /// Get private members of class
+    [[nodiscard]] int getId() const;
     [[nodiscard]] string getLyrics() const;
+    [[nodiscard]] string getFullLyrics() const;
 
     /// Set private members of class
     void setId(const int& value);
@@ -35,11 +38,11 @@ public:
 
 private:
 
-    int id;
+    int id{};
     string lyrics;
     string fullLyrics;
     string textLanguage;
-    bool showTranslation;
-    bool hasRights;
+    bool showTranslation{};
+    bool hasRights{};
 
 };

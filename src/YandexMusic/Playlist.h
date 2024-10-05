@@ -46,7 +46,6 @@ public:
 
 //    void deleteUserPlaylist();
     void downloadPlaylist();
-    void downloadPlaylists(vector<Playlist> & playlists);
     void getPlaylistTracks();
     void addTracksToPlaylist(const vector<Track> & tracks);
 

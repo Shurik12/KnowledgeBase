@@ -3,6 +3,12 @@
 #include <Poco/MD5Engine.h>
 #include <Poco/DigestStream.h>
 
+#include <algorithm>
+
+#include <fstream>
+#include <string>
+#include <iostream>
+
 #include <memory>
 #include <utility>
 
@@ -13,12 +19,14 @@ Track::Track(
 	string  title_,
     vector<string> artists_,
     vector<int> albums_,
-    bool available_)
+    bool available_,
+    bool lyrics_available_)
 	: id(std::move(id_))
 	, title(std::move(title_))
 	, artists(std::move(artists_))
     , albums(std::move(albums_))
     , available(available_)
+    , lyrics_available(lyrics_available_)
     , supplement()
 {}
 
@@ -37,6 +45,11 @@ string Track::getId() const
 bool Track::getAvailable() const
 {
     return available;
+}
+
+bool Track::getLyricsAvailable() const
+{
+    return lyrics_available;
 }
 
 vector<string> Track::getArtists() const
@@ -76,12 +89,12 @@ void Track::downloadTrack(string & lyrics_dir, string & tracks_dir)
     /// Get track file name on fs
     string name = artists.empty() ? title : artists[0] + " - " + title;
     name = name.size()>100 ? name.substr(0, 100)+".mp3" : name + ".mp3";
+    std::replace( name.begin(), name.end(), '/', '-');
 
     /// Get track download info
     getDownloadInfo();
     string url = download_info->getDownloadInfoUrl();
     string bitrate = download_info->getBitrateInKbps();
-    cout << bitrate << "\n";
 
     XMLDocument xml_response;
     Request request;
@@ -96,6 +109,14 @@ void Track::downloadTrack(string & lyrics_dir, string & tracks_dir)
     fp = fopen((tracks_dir + "/" + name).data() , "wb" );
     fwrite(Curl::buffer.data(), Curl::buffer.size(), 1, fp);
     fclose(fp);
+
+    /// Download supplement
+    if (getLyricsAvailable())
+    {
+        getSupplement();
+        std::ofstream output_file(lyrics_dir + "/" + name + ".txt");
+        output_file << supplement->getFullLyrics();
+    }
 }
 
 void Track::getDownloadInfo()

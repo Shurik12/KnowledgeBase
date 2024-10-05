@@ -5,7 +5,8 @@
 
 void Request::processConfig()
 {
-    consoleLogger.debug(fmt::format("Processing configuration file '/home/alex/Git/KnowledgeBase/config.xml'."));
+//    consoleLogger.debug(fmt::format("Processing configuration file '/home/alex/Git/KnowledgeBase/config.xml'."));
+    fileLogger.debug(fmt::format("Processing configuration file '/home/alex/Git/KnowledgeBase/config.xml'."));
     XMLDocument xml_doc;
     XMLError eResult = xml_doc.LoadFile("/home/alex/Git/KnowledgeBase/config.xml");
     if (eResult != XML_SUCCESS)
@@ -17,8 +18,10 @@ void Request::processConfig()
 
     auto token = root->FirstChildElement("token")->GetText();
     auto output_folder = root->FirstChildElement("output_folder")->GetText();
+    auto log_folder = root->FirstChildElement("log_folder")->GetText();
     Curl::setToken(token);
     Playlist::setOutput(output_folder);
+    User::setLog(log_folder);
 }
 
 User Request::getUser()
@@ -55,7 +58,7 @@ void Request::makeRequest(const string & url, XMLDocument & xml_response)
     XMLPrinter printer;
     xml_response.Print( &printer );
     fileLogger.debug(fmt::format("\n{}", printer.CStr()));
-    consoleLogger.debug(fmt::format("\n{}", printer.CStr()));
+//    consoleLogger.debug(fmt::format("\n{}", printer.CStr()));
     /// Save XML to file
     /// xml_response.SaveFile( "tmp/foo.xml" );
 }

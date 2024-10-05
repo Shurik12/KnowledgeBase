@@ -41,6 +41,7 @@ public:
     void deletePlaylist(const int & kind);
 
     Playlist getPlaylist(const int & kind);
+    void downloadPlaylists(vector<Playlist> & playlists);
 
     vector<Playlist> playlists;
     vector<Track> like_tracks;
@@ -48,10 +49,13 @@ public:
     Logger& fileLogger = Logger::get("FileLogger");
     Logger& consoleLogger = Logger::get("ConsoleLogger");
 
+    static void setLog(const std::string & log_folder_);
+    static std::string log_folder;
+
 private:
 
-	string id;
-	string client_id;
-	string client_secret;
-	string password;
+	std::string id;
+    std::string client_id;
+    std::string client_secret;
+    std::string password;
 };

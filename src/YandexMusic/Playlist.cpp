@@ -80,11 +80,13 @@ void Playlist::setId(const string & id_)
 void Playlist::print()
 {
     cout << this->title << ": " << this->kind << "\n";
+    fileLogger.information(fmt::format("{}: {}", this->title, this->kind));
 }
 
 void Playlist::downloadPlaylist()
 {
-    consoleLogger.information(fmt::format("Playlist to download: {}", title));
+//    consoleLogger.information(fmt::format("Playlist to download: {}", title));
+    fileLogger.information(fmt::format("Playlist to download: {}", title));
     string playlist_folder = output_folder + "/" + title;
     filesystem::create_directories(playlist_folder);
     getPlaylistTracks();
@@ -98,11 +100,13 @@ void Playlist::downloadPlaylist()
     /// Get already loaded tracks (already on yandex disk and file system)
     if (tracks.empty())
     {
-        consoleLogger.warning(fmt::format("No tracks in playlist: {}", title));
+//        consoleLogger.warning(fmt::format("No tracks in playlist: {}", title));
+        fileLogger.warning(fmt::format("No tracks in playlist: {}", title));
         return;
     }
 
-    consoleLogger.information(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
+//    consoleLogger.information(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
+    fileLogger.information(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
 
     /// Get list directory
     set<string> loaded_tracks;
@@ -111,31 +115,30 @@ void Playlist::downloadPlaylist()
     {
         file_name = entry.path().generic_string();
         file_name = file_name.substr(file_name.find_last_of('/')+1);
-        consoleLogger.information(fmt::format("{}", file_name));
+//        consoleLogger.information(fmt::format("{}", file_name));
+        fileLogger.information(fmt::format("{}", file_name));
         loaded_tracks.emplace(file_name);
     }
-    consoleLogger.information(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
+//    consoleLogger.information(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
+    fileLogger.information(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
 
     /// Download new tracks
     vector<Track> tracks_for_download;
     for (const Track& track : tracks)
     {
-        auto artists = track.getArtists();
-        string name = artists.empty() ? track.getTitle() : artists[0] + " - " + track.getTitle();
-        name = name.size() > 100 ? name.substr(0, 100)+".mp3" : name + ".mp3";
+        auto track_artists = track.getArtists();
+        string name = track_artists.empty() ? track.getTitle() : track_artists[0] + " - " + track.getTitle();
+        if (name.size() > 100)
+            name = name.substr(0, 100);
+        name += ".mp3";
         if (auto search = loaded_tracks.find(name); search == loaded_tracks.end())
         {
             tracks_for_download.emplace_back(track);
         }
     }
-    consoleLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
+//    consoleLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
+    fileLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
     User::downloadTracks(tracks_for_download, lyrics_folder, tracks_folder);
-}
-
-void Playlist::downloadPlaylists(vector<Playlist> & playlists)
-{
-    for (Playlist playlist : playlists)
-        downloadPlaylist();
 }
 
 void Playlist::getPlaylistTracks()
@@ -155,26 +158,32 @@ void Playlist::getPlaylistTracks()
 
         const Value& track = rTracks[i]["track"];
 
+        /// Processing artists
         for (j = 0; j < track["artists"].Size(); ++j)
-        {
-            /// Processing artists
-            for (auto& artist : track["artists"][j].GetObject())
+            for (auto &artist: track["artists"][j].GetObject())
                 if (string(artist.name.GetString()) == "name")
                     processed_artists.emplace_back(artist.value.GetString());
 
-            /// Processing albums
+        /// Processing albums
+        for (j = 0; j < track["albums"].Size(); ++j)
             for (auto& album : track["albums"][j].GetObject())
                 if (string(album.name.GetString()) == "id")
                     processed_albums.emplace_back(album.value.GetInt());
-        }
+
+//        for (auto& it : track.GetObject())
+//            cout << it.name.GetString() << "\n";
+
         Track processed_track(
                 track["id"].GetString(),
                 track["title"].GetString(),
                 processed_artists,
                 processed_albums,
-                track["available"].GetBool());
+                track["available"].GetBool(),
+                track.HasMember("lyricsAvailable") ? track["lyricsAvailable"].GetBool() : false);
 
-        artists.insert(processed_artists[0]);
+
+        if (!processed_artists.empty())
+            artists.insert(processed_artists[0]);
         processed_artists.clear();
         tracks.emplace_back(processed_track);
     }

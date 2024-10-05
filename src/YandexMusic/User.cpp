@@ -2,6 +2,8 @@
 #include <YandexMusic/Request.h>
 #include <utility>
 
+std::string User::log_folder;
+
 User::User(string id_)
 	: id(std::move(id_))
 {}
@@ -9,6 +11,11 @@ User::User(string id_)
 string User::getId() const
 {
 	return id;
+}
+
+void User::setLog(const std::string & log_folder_)
+{
+    User::log_folder = log_folder_;
 }
 
 void User::printUserPlaylists()
@@ -93,7 +100,8 @@ vector<Track> User::getTracks(vector<string> & track_ids)
                 result[i]["title"].GetString(),
                 processed_artists,
                 processed_albums,
-                result[i]["available"].GetBool());
+                result[i]["available"].GetBool(),
+                result[i]["lyricsAvailable"].GetBool());
 
         processed_artists.clear();
 
@@ -279,4 +287,10 @@ Playlist User::playlistObjectFromResponse(const Value & response)
         playlist.setId(id);
     }
     return playlist;
+}
+
+void User::downloadPlaylists(vector<Playlist> & playlists)
+{
+    for (Playlist playlist : playlists)
+        playlist.downloadPlaylist();
 }

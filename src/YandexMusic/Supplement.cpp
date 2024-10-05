@@ -15,9 +15,19 @@ Supplement::Supplement(
         , hasRights(hasRights_)
 {}
 
+int Supplement::getId() const
+{
+    return id;
+}
+
 string Supplement::getLyrics() const
 {
     return lyrics;
+}
+
+string Supplement::getFullLyrics() const
+{
+    return fullLyrics;
 }
 
 void Supplement::setId(const int& value)
