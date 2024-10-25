@@ -8,6 +8,7 @@ add_subdirectory(src)
 add_subdirectory(base)
 add_subdirectory(contrib EXCLUDE_FROM_ALL)
 
-add_executable(knowledgebase main.cpp)
+# add_executable(knowledgebase main.cpp)
+add_executable(knowledgebase server.cpp)
 target_link_libraries(knowledgebase yandex_music)
 target_include_directories(knowledgebase PUBLIC src base contrib)
