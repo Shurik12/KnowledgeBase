@@ -18,44 +18,60 @@
 using namespace std;
 using namespace rapidjson;
 
-class User
-{
+namespace yandex_music {
 
-public:
+    class User {
 
-	explicit User(string  id_);
-    ~User()= default;
-    [[nodiscard]] string getId() const;
-    void getUserPlaylists();
-    static void getTracks(vector<Track> & tracks);
-    static vector<Track> getTracks(vector<string> & track_ids);
-    void getLikeTracks();
-    static void downloadTracks(vector<Track> & tracks, string & lyrics_dir, string & tracks_dir);
-    void getTracksWithoutPlaylist();
-    void printUserPlaylists();
+    public:
 
-    Playlist playlistObjectFromResponse(const Value & response);
+        explicit User(string id_);
 
-    Playlist createPlaylist(const string & title);
-    void changePlaylistName(const int & kind, const string & new_title);
-    void deletePlaylist(const int & kind);
+        ~User() = default;
 
-    Playlist getPlaylist(const int & kind);
-    void downloadPlaylists(vector<Playlist> & playlists);
+        [[nodiscard]] string getId() const;
 
-    vector<Playlist> playlists;
-    vector<Track> like_tracks;
+        void getUserPlaylists();
 
-    Logger& fileLogger = Logger::get("FileLogger");
-    Logger& consoleLogger = Logger::get("ConsoleLogger");
+        static void getTracks(vector<Track> &tracks);
 
-    static void setLog(const std::string & log_folder_);
-    static std::string log_folder;
+        static vector<Track> getTracks(vector<string> &track_ids);
 
-private:
+        void getLikeTracks();
 
-	std::string id;
-    std::string client_id;
-    std::string client_secret;
-    std::string password;
-};
+        static void downloadTracks(vector<Track> &tracks, string &lyrics_dir, string &tracks_dir);
+
+        void getTracksWithoutPlaylist();
+
+        void printUserPlaylists();
+
+        Playlist playlistObjectFromResponse(const Value &response);
+
+        Playlist createPlaylist(const string &title);
+
+        void changePlaylistName(const int &kind, const string &new_title);
+
+        void deletePlaylist(const int &kind);
+
+        Playlist getPlaylist(const int &kind);
+
+        void downloadPlaylists(vector<Playlist> &playlists);
+
+        vector<Playlist> playlists;
+        vector<Track> like_tracks;
+
+        Logger &fileLogger = Logger::get("FileLogger");
+        Logger &consoleLogger = Logger::get("ConsoleLogger");
+
+        static void setLog(const std::string &log_folder_);
+
+        static std::string log_folder;
+
+    private:
+
+        std::string id;
+        std::string client_id;
+        std::string client_secret;
+        std::string password;
+    };
+
+}

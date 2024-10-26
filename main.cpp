@@ -9,6 +9,7 @@
 #include <Poco/FileChannel.h>
 
 using namespace std;
+using namespace yandex_music;
 
 using Poco::Logger;
 using Poco::PatternFormatter;
@@ -29,22 +30,21 @@ int main()
     pFCConsole->open();
 
     auto * pFCFile = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c %N [ %P ] : %s:%q:%t"));
-    pFCFile->setChannel(new FileChannel("sample.log"));
+    pFCFile->setChannel(new FileChannel("Music/log/file.log"));
     pFCFile->open();
 
-    // create two Logger objects - one for
-    // each channel chain.
+    // create two Logger objects - one for each channel chain.
     Logger & consoleLogger = Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_DEBUG);
     Logger & fileLogger    = Logger::create("FileLogger", pFCFile, Message::PRIO_DEBUG);
     consoleLogger.information(fmt::format("\nStart program execution{}", "!"));
     fileLogger.information(fmt::format("\nStart program execution{}", "!"));
     ///-------------------------------------------------------------------------------------------------------------------------------------------
 
-    int flag = 6;
+    int flag = 1;
 
-    Request request {};
-    request.processConfig();
-    User user {request.getUser()};
+    yandex_music::Request request {};
+    yandex_music::Request::processConfig();
+    yandex_music::User user {request.getUser()};
     string user_id = user.getId();
 
     switch (flag)
@@ -63,7 +63,7 @@ int main()
         /// Create, change and delete playlist
         case 3:
         {
-            Playlist playlist {user.createPlaylist("Test3")};
+            yandex_music::Playlist playlist {user.createPlaylist("Test3")};
             user.changePlaylistName(playlist.getKind(), "Test4");
             user.getLikeTracks();
             playlist.addTracksToPlaylist(user.like_tracks);

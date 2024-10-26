@@ -14,57 +14,73 @@ using namespace std;
 
 using Poco::Logger;
 
-class Playlist
-{
+namespace yandex_music {
 
-public:
+    class Playlist {
 
-    Playlist() = default;
+    public:
 
-    Playlist(
-		string  title_,
-		int  revision_,
-		int  trackCount_,
-		string  playlistUuid_,
-		int  kind_,
-        string  userId_);
+        Playlist() = default;
 
-	~Playlist()= default;
-    void print();
-	
-	[[nodiscard]] string getTitle() const;
-    void setTitle(const string & title_);
-	[[nodiscard]] int getRevision() const;
-    void setRevision(const int & revision_);
-	[[nodiscard]] int getTrackCount() const;
-    void setTrackCount(const int & trackCount_);
-	[[nodiscard]] string getPlaylistUuid() const;
-    void setPlaylistUuid(const string & playlistUuid_);
-	[[nodiscard]] int getKind() const;
-    void setKind(const int & kind_);
-    void setId(const string & id_);
+        Playlist(
+                string title_,
+                int revision_,
+                int trackCount_,
+                string playlistUuid_,
+                int kind_,
+                string userId_);
+
+        ~Playlist() = default;
+
+        void print();
+
+        [[nodiscard]] string getTitle() const;
+
+        void setTitle(const string &title_);
+
+        [[nodiscard]] int getRevision() const;
+
+        void setRevision(const int &revision_);
+
+        [[nodiscard]] int getTrackCount() const;
+
+        void setTrackCount(const int &trackCount_);
+
+        [[nodiscard]] string getPlaylistUuid() const;
+
+        void setPlaylistUuid(const string &playlistUuid_);
+
+        [[nodiscard]] int getKind() const;
+
+        void setKind(const int &kind_);
+
+        void setId(const string &id_);
 
 //    void deleteUserPlaylist();
-    void downloadPlaylist();
-    void getPlaylistTracks();
-    void addTracksToPlaylist(const vector<Track> & tracks);
+        void downloadPlaylist();
 
-    static void setOutput(const string & output_);
+        void getPlaylistTracks();
 
-    vector<Track> tracks;
-    unordered_set<string> artists;
+        void addTracksToPlaylist(const vector<Track> &tracks);
 
-private:
+        static void setOutput(const string &output_);
 
-	string title;
-	int revision;
-	int trackCount {};
-	string playlistUuid;
-	int kind {};
-    string userId;
+        vector<Track> tracks;
+        unordered_set<string> artists;
 
-    static string output_folder;
-    Logger& fileLogger = Logger::get("FileLogger");
-    Logger& consoleLogger = Logger::get("ConsoleLogger");
+    private:
 
-};
+        string title;
+        int revision;
+        int trackCount{};
+        string playlistUuid;
+        int kind{};
+        string userId;
+
+        static string output_folder;
+        Logger &fileLogger = Logger::get("FileLogger");
+        Logger &consoleLogger = Logger::get("ConsoleLogger");
+
+    };
+
+}

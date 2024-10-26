@@ -16,32 +16,39 @@ using namespace tinyxml2;
 
 using Poco::Logger;
 
-class Request : public Curl
-{
+namespace yandex_music {
 
-public:
+    class Request : public Curl {
 
-	Request()= default;
-	~Request()= default;
+    public:
 
-    Logger& fileLogger = Logger::get("FileLogger");
-    Logger& consoleLogger = Logger::get("ConsoleLogger");
+        Request() = default;
+
+        ~Request() = default;
+
+        Logger &fileLogger = Logger::get("FileLogger");
+        Logger &consoleLogger = Logger::get("ConsoleLogger");
 
 
-    User getUser();
-    void processConfig();
+        User getUser();
 
-    void makeRequest(string & params, Document & document1);
-    void makeRequest(const string & url, XMLDocument & xml_response);
-    void makePostRequest(string & url_postfix, map<string, string> & body, Document & document);
+        static void processConfig();
 
-	// vector<Track> getDislikedTracksIds(string user_id);
-	// Playlist getUserPlaylist(string user_id, string kind);
-	// Playlist createUserPlaylist(...);
-	// Playlist changeUserPlaylistName(string user, string kind, string name);
-	// Playlist changeUserPlaylist(string user, string kind);
+        void makeRequest(string &params, Document &document1);
 
-private:
+        void makeRequest(const string &url, XMLDocument &xml_response);
 
-	const string url_prefix = "https://api.music.yandex.net:443/";
-};
+        void makePostRequest(string &url_postfix, map<string, string> &body, Document &document);
+
+        // vector<Track> getDislikedTracksIds(string user_id);
+        // Playlist getUserPlaylist(string user_id, string kind);
+        // Playlist createUserPlaylist(...);
+        // Playlist changeUserPlaylistName(string user, string kind, string name);
+        // Playlist changeUserPlaylist(string user, string kind);
+
+    private:
+
+        const string url_prefix = "https://api.music.yandex.net:443/";
+    };
+
+}

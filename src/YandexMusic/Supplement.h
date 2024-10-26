@@ -6,43 +6,53 @@
  
 using namespace std;
 
-class Supplement
-{
+namespace yandex_music {
 
-public:
+    class Supplement {
 
-	Supplement()= default;
+    public:
 
-    Supplement(
-            int id_,
-            string  lyrics_,
-            string fullLyrics_,
-            string textLanguage_,
-            bool showTranslation_,
-            bool hasRights_);
+        Supplement() = default;
 
-	~Supplement()= default;
+        Supplement(
+                int id_,
+                string lyrics_,
+                string fullLyrics_,
+                string textLanguage_,
+                bool showTranslation_,
+                bool hasRights_);
 
-    /// Get private members of class
-    [[nodiscard]] int getId() const;
-    [[nodiscard]] string getLyrics() const;
-    [[nodiscard]] string getFullLyrics() const;
+        ~Supplement() = default;
 
-    /// Set private members of class
-    void setId(const int& value);
-    void setLyrics(const string& value);
-    void setFullLyrics(const string& value);
-    void setTextLanguage(const string& value);
-    void setShowTranslation(const bool& value);
-    void setHasRights(const bool& value);
+        /// Get private members of class
+        [[nodiscard]] int getId() const;
 
-private:
+        [[nodiscard]] string getLyrics() const;
 
-    int id{};
-    string lyrics;
-    string fullLyrics;
-    string textLanguage;
-    bool showTranslation{};
-    bool hasRights{};
+        [[nodiscard]] string getFullLyrics() const;
 
-};
+        /// Set private members of class
+        void setId(const int &value);
+
+        void setLyrics(const string &value);
+
+        void setFullLyrics(const string &value);
+
+        void setTextLanguage(const string &value);
+
+        void setShowTranslation(const bool &value);
+
+        void setHasRights(const bool &value);
+
+    private:
+
+        int id{};
+        string lyrics;
+        string fullLyrics;
+        string textLanguage;
+        bool showTranslation{};
+        bool hasRights{};
+
+    };
+
+}
