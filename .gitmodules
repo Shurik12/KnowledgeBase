@@ -28,3 +28,6 @@
 [submodule "contrib/rapidjson"]
 	path = contrib/rapidjson
 	url = https://github.com/ClickHouse/rapidjson.git
+[submodule "contrib/clickhouse-cpp"]
+	path = contrib/clickhouse-cpp
+	url = https://github.com/ClickHouse/clickhouse-cpp.git
