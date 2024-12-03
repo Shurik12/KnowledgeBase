@@ -8,7 +8,7 @@ namespace yandex_music {
     void Request::processConfig()
     {
         XMLDocument xml_doc;
-        XMLError eResult = xml_doc.LoadFile("/home/alex/Git/KnowledgeBase/config.xml");
+        XMLError eResult = xml_doc.LoadFile("/home/user/git/KnowledgeBase/build/config.xml");
         if (eResult != XML_SUCCESS)
             cout << "Error!\n";
 
