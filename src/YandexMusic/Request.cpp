@@ -1,5 +1,4 @@
 #include <YandexMusic/Request.h>
-#include <Poco/MD5Engine.h>
 
 #define SIGN_SALT "XGRlBW9FXlekgbPrRHuSiA"
 
@@ -8,7 +7,7 @@ namespace yandex_music {
     void Request::processConfig()
     {
         XMLDocument xml_doc;
-        XMLError eResult = xml_doc.LoadFile("/home/user/git/KnowledgeBase/build/config.xml");
+        XMLError eResult = xml_doc.LoadFile("/home/alex/git/KnowledgeBase/config.xml");
         if (eResult != XML_SUCCESS)
             cout << "Error!\n";
 
@@ -53,8 +52,7 @@ namespace yandex_music {
         /// Print XML to log file
         XMLPrinter printer;
         xml_response.Print(&printer);
-        fileLogger.debug(fmt::format("\n{}", printer.CStr()));
-//    consoleLogger.debug(fmt::format("\n{}", printer.CStr()));
+        logger->debug(fmt::format("\n{}", printer.CStr()));
         /// Save XML to file
         /// xml_response.SaveFile( "tmp/foo.xml" );
     }

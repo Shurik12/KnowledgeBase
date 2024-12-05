@@ -1,12 +1,8 @@
 #pragma once
 
 #include <fstream>
-
-#include "Poco/Timestamp.h"
-#include "Poco/Timezone.h"
-#include "Poco/DateTimeFormatter.h"
-#include "Poco/DateTimeFormat.h"
 #include <rapidjson/document.h>
+#include <spdlog/spdlog.h>
 
 #include <string>
 #include <unordered_map>
@@ -59,8 +55,7 @@ namespace yandex_music {
         vector<Playlist> playlists;
         vector<Track> like_tracks;
 
-        Logger &fileLogger = Logger::get("FileLogger");
-        Logger &consoleLogger = Logger::get("ConsoleLogger");
+        std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
 
         static void setLog(const std::string &log_folder_);
 

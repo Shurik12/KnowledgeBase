@@ -5,7 +5,7 @@
             "name": "C++ Launch (Linux)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/server",
+            "program": "${workspaceFolder}/build/knowledgebase",
 			"cwd": "${workspaceFolder}/server",
             // "environment": [{ "name": "config", "value": "Debug" }],
             "args": []

@@ -1,46 +1,34 @@
 #include <YandexMusic/Request.h>
 
-#include <fmt/format.h>
-#include <Poco/Logger.h>
-#include <Poco/Message.h>
-#include <Poco/PatternFormatter.h>
-#include <Poco/FormattingChannel.h>
-#include <Poco/ConsoleChannel.h>
-#include <Poco/FileChannel.h>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
-using namespace std;
 using namespace yandex_music;
 
-using Poco::Logger;
-using Poco::PatternFormatter;
-using Poco::FormattingChannel;
-using Poco::ConsoleChannel;
-using Poco::FileChannel;
-using Poco::Message;
+void multi_sink_example();
+
+// create a logger with 2 targets, with different log levels and formats.
+// The console will show only warnings or errors, while the file will log all.
+void multi_sink_example()
+{
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::warn);
+    console_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/multisink.txt", true);
+    file_sink->set_level(spdlog::level::trace);
+    file_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
+
+    std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
+    auto logger = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
+    spdlog::register_logger(logger);
+}
 
 int main()
 {
-    /// Loggers initializations
-    ///-------------------------------------------------------------------------------------------------------------------------------------------
-    ///ToDo вынести в отдельную функцию создание логгера и доработать
-    // set up two channel chains - one to the
-    // console and the other one to a log file.
-    auto * pFCConsole = new FormattingChannel(new PatternFormatter("%s: %p: %t"));
-    pFCConsole->setChannel(new ConsoleChannel);
-    pFCConsole->open();
-
-    auto * pFCFile = new FormattingChannel(new PatternFormatter("%Y-%m-%d %H:%M:%S.%c %N [ %P ] : %s:%q:%t"));
-    pFCFile->setChannel(new FileChannel("Music/log/file.log"));
-    pFCFile->open();
-
-    // create two Logger objects - one for each channel chain.
-    Logger & consoleLogger = Logger::create("ConsoleLogger", pFCConsole, Message::PRIO_DEBUG);
-    Logger & fileLogger    = Logger::create("FileLogger", pFCFile, Message::PRIO_DEBUG);
-    consoleLogger.information(fmt::format("\nStart program execution{}", "!"));
-    fileLogger.information(fmt::format("\nStart program execution{}", "!"));
-    ///-------------------------------------------------------------------------------------------------------------------------------------------
-
-    int flag = 1;
+    multi_sink_example();
+    int flag = 5;
 
     yandex_music::Request request {};
     yandex_music::Request::processConfig();
@@ -100,7 +88,8 @@ int main()
         }
 
         default:
-            fileLogger.information(fmt::format("Nothing to do\n"));
+            std::cout << "Done!\n";
+            // fileLogger.information(fmt::format("Nothing to do\n"));
     }
 //    track.getSupplement();
 //    cout << track.supplement->getLyrics() << "\n";

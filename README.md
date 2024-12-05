@@ -23,6 +23,24 @@ KnowledgeBase is an open-source data management application, that allow manage a
 
 * [**Presentation**](https://google.com/) - ????
 
+## Build
+
+```bash
+# Create default profile by path: /home/alex/.conan2/profiles/default
+conan profile detect --force
+
+# Create another (ex. debug) version of profile: cp and edit file
+cp /home/alex/.conan2/profiles/default /home/alex/.conan2/profiles/debug
+
+# Install debug version to build/ folder
+conan install . --output-folder=build --build=missing --profile=debug
+
+# Build project
+cd build/
+cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
+cmake --build .
+```
+
 **Map of methods:**
 1. getUserPlaylists()
 2. getTracksWithoutPlaylist()

@@ -4,7 +4,6 @@
 #include <YandexMusic/DownloadInfo.h>
 #include <YandexMusic/User.h>
 #include <rapidjson/document.h>
-#include <Poco/Logger.h>
 #include <fmt/format.h>
 #include <Common/tinyxml2.h>
 
@@ -13,8 +12,6 @@
 using namespace std;
 using namespace rapidjson;
 using namespace tinyxml2;
-
-using Poco::Logger;
 
 namespace yandex_music {
 
@@ -26,9 +23,7 @@ namespace yandex_music {
 
         ~Request() = default;
 
-        Logger &fileLogger = Logger::get("FileLogger");
-        Logger &consoleLogger = Logger::get("ConsoleLogger");
-
+        std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
 
         User getUser();
 

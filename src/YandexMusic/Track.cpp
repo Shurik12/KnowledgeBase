@@ -1,14 +1,11 @@
 #include <YandexMusic/Track.h>
 #include <YandexMusic/Request.h>
-#include <Poco/MD5Engine.h>
-#include <Poco/DigestStream.h>
+#include <Common/md5.h>
 
 #include <algorithm>
-
 #include <fstream>
 #include <string>
 #include <iostream>
-
 #include <memory>
 #include <utility>
 
@@ -60,13 +57,11 @@ namespace yandex_music {
         ts = xml_response.FirstChildElement("download-info")->FirstChildElement("ts")->GetText();
         s = xml_response.FirstChildElement("download-info")->FirstChildElement("s")->GetText();
 
-        /// Get md5 hash
-        Poco::MD5Engine md5;
-        Poco::DigestOutputStream ds(md5);
-        ds << SIGN_SALT << path.substr(1) << s;
-        ds.close();
+        MD5 md5;
+        std::string text = SIGN_SALT + path.substr(1) + s;
+        md5.add(text.c_str(), text.size());
 
-        string sign = Poco::DigestEngine::digestToHex(md5.digest());
+        std::string sign = md5.getHash();
 
         /// Return value
         download_url = "https://" + host + "/" + "get-mp3/" + sign + "/" + ts + path;

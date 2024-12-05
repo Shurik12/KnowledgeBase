@@ -65,12 +65,11 @@ namespace yandex_music {
 
     void Playlist::print() {
         cout << this->title << ": " << this->kind << "\n";
-        fileLogger.information(fmt::format("{}: {}", this->title, this->kind));
+        logger->info(fmt::format("{}: {}", this->title, this->kind));
     }
 
     void Playlist::downloadPlaylist() {
-//    consoleLogger.information(fmt::format("Playlist to download: {}", title));
-        fileLogger.information(fmt::format("Playlist to download: {}", title));
+        logger->info(fmt::format("Playlist to download: {}", title));
         string playlist_folder = output_folder + "/" + title;
         filesystem::create_directories(playlist_folder);
         getPlaylistTracks();
@@ -83,13 +82,11 @@ namespace yandex_music {
 
         /// Get already loaded tracks (already on yandex disk and file system)
         if (tracks.empty()) {
-//        consoleLogger.warning(fmt::format("No tracks in playlist: {}", title));
-            fileLogger.warning(fmt::format("No tracks in playlist: {}", title));
+            logger->warn(fmt::format("No tracks in playlist: {}", title));
             return;
         }
 
-//    consoleLogger.information(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
-        fileLogger.information(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
+        logger->info(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
 
         /// Get list directory
         set<string> loaded_tracks;
@@ -97,12 +94,10 @@ namespace yandex_music {
         for (const auto &entry: fs::directory_iterator(tracks_folder)) {
             file_name = entry.path().generic_string();
             file_name = file_name.substr(file_name.find_last_of('/') + 1);
-//        consoleLogger.information(fmt::format("{}", file_name));
-            fileLogger.information(fmt::format("{}", file_name));
+            logger->info(fmt::format("{}", file_name));
             loaded_tracks.emplace(file_name);
         }
-//    consoleLogger.information(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
-        fileLogger.information(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
+        logger->info(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
 
         /// Download new tracks
         vector<Track> tracks_for_download;
@@ -116,8 +111,7 @@ namespace yandex_music {
                 tracks_for_download.emplace_back(track);
             }
         }
-//    consoleLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
-        fileLogger.information(fmt::format("Tracks for download: {}", tracks_for_download.size()));
+        logger->info(fmt::format("Tracks for download: {}", tracks_for_download.size()));
         User::downloadTracks(tracks_for_download, lyrics_folder, tracks_folder);
     }
 

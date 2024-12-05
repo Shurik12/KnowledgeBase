@@ -153,8 +153,7 @@ namespace yandex_music {
 
     void User::getTracksWithoutPlaylist() {
         ofstream result;
-        result.open(fmt::format("/home/alex/Git/KnowledgeBase/output/tracks_without_playlist_{}.txt",
-                                Poco::Timestamp().epochTime()));
+        result.open("/home/alex/Git/KnowledgeBase/output/tracks_without_playlist.txt");
 
         if (playlists.empty())
             getUserPlaylists();

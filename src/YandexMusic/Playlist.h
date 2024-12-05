@@ -1,18 +1,16 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <unordered_set>
-#include <Poco/Logger.h>
 #include <fmt/format.h>
 #include <YandexMusic/Track.h>
 #include <filesystem>
 
 namespace fs = std::filesystem;
 using namespace std;
-
-using Poco::Logger;
 
 namespace yandex_music {
 
@@ -78,9 +76,7 @@ namespace yandex_music {
         string userId;
 
         static string output_folder;
-        Logger &fileLogger = Logger::get("FileLogger");
-        Logger &consoleLogger = Logger::get("ConsoleLogger");
-
+        std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
     };
 
 }
