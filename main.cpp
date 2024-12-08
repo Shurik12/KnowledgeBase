@@ -3,9 +3,8 @@
 #include "spdlog/sinks/basic_file_sink.h"
 
 #include <YandexMusic/Request.h>
-#include <clickhouse/client.h>
+#include <Databases/Clickhouse.h>
 
-using namespace clickhouse;
 using namespace yandex_music;
 
 void multi_sink_example();
@@ -28,6 +27,7 @@ void multi_sink_example()
 
 int main()
 {
+    Clickhouse::createTableUser();
     multi_sink_example();
 
     int flag = 1;

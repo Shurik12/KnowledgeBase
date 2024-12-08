@@ -64,5 +64,4 @@ namespace yandex_music
         std::string client_secret;
         std::string password;
     };
-
 }

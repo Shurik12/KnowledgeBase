@@ -15,8 +15,14 @@ find_package(spdlog REQUIRED)
 set(src_headers)
 set(src_sources)
 
-file(GLOB src_headers "src/YandexMusic/*.h" "src/Common/*.h")
-file(GLOB src_sources "src/YandexMusic/*.cpp" "src/Common/*.cpp")
+file(GLOB src_headers 
+        "src/YandexMusic/*.h" 
+        "src/Common/*.h"
+        "src/Databases/*.h")
+file(GLOB src_sources 
+        "src/YandexMusic/*.cpp" 
+        "src/Common/*.cpp" 
+        "src/Databases/*.cpp")
 
 add_executable(knowledgebase main.cpp)
 target_sources(knowledgebase PRIVATE ${src_headers} ${src_sources})
