@@ -9,6 +9,7 @@ find_package(double-conversion REQUIRED)
 find_package(fmt REQUIRED)
 find_package(CURL REQUIRED)
 find_package(lz4 REQUIRED)
+find_package(libpqxx REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(spdlog REQUIRED)
 
@@ -33,6 +34,7 @@ target_link_libraries(
     fmt::fmt
     CURL::libcurl
     LZ4::lz4_static
+    libpqxx::pqxx
     rapidjson
     spdlog::spdlog)
 target_include_directories(knowledgebase PUBLIC src)
@@ -47,6 +49,7 @@ target_link_libraries(
     fmt::fmt
     CURL::libcurl
     LZ4::lz4_static
+    libpqxx::pqxx
     rapidjson
     spdlog::spdlog)
 target_include_directories(server PUBLIC src)
