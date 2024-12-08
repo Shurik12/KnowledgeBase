@@ -8,31 +8,29 @@
 #include <YandexMusic/Supplement.h>
 #include <Common/tinyxml2.h>
 
-using namespace std;
-using namespace tinyxml2;
-
-namespace yandex_music {
-
-    class Track {
+namespace yandex_music 
+{
+    class Track 
+    {
     public:
         Track(
-                string id_,
-                string title_,
-                vector<string> artists_,
-                vector<int> albums_,
+                std::string id_,
+                std::string title_,
+                std::vector<std::string> artists_,
+                std::vector<int> albums_,
                 bool available_,
                 bool lyrics_available_);
 
         ~Track() = default;
 
         /// Get private members of class
-        [[nodiscard]] string getId() const;
+        [[nodiscard]] std::string getId() const;
 
-        [[nodiscard]] string getTitle() const;
+        [[nodiscard]] std::string getTitle() const;
 
-        [[nodiscard]] vector<string> getArtists() const;
+        [[nodiscard]] std::vector<std::string> getArtists() const;
 
-        [[nodiscard]] vector<int> getAlbums() const;
+        [[nodiscard]] std::vector<int> getAlbums() const;
 
         [[nodiscard]] bool getAvailable() const;
 
@@ -42,22 +40,21 @@ namespace yandex_music {
 
         void getSupplement();
 
-        void downloadTrack(string &lyrics_dir, string &tracks_dir);
+        void downloadTrack(std::string &lyrics_dir, std::string &tracks_dir);
 
-        static void getSign(string &download_url, const XMLDocument &xml_response);
+        static void getSign(std::string &download_url, const tinyxml2::XMLDocument &xml_response);
 
-        shared_ptr<DownloadInfo> download_info;
-        shared_ptr<Supplement> supplement;
+        std::shared_ptr<DownloadInfo> download_info;
+        std::shared_ptr<Supplement> supplement;
 
         void print();
 
     private:
-        string id;
-        string title;
-        vector<string> artists;
-        vector<int> albums;
+        std::string id;
+        std::string title;
+        std::vector<std::string> artists;
+        std::vector<int> albums;
         bool available = true;
         bool lyrics_available = false;
     };
-
 }

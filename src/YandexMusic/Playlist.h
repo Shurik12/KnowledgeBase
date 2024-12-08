@@ -9,32 +9,29 @@
 #include <YandexMusic/Track.h>
 #include <filesystem>
 
-namespace fs = std::filesystem;
-using namespace std;
-
-namespace yandex_music {
-
-    class Playlist {
-
+namespace yandex_music 
+{
+    class Playlist 
+    {
     public:
 
         Playlist() = default;
 
         Playlist(
-                string title_,
-                int revision_,
-                int trackCount_,
-                string playlistUuid_,
-                int kind_,
-                string userId_);
+            std::string title_,
+            int revision_,
+            int trackCount_,
+            std::string playlistUuid_,
+            int kind_,
+            std::string userId_);
 
         ~Playlist() = default;
 
         void print();
 
-        [[nodiscard]] string getTitle() const;
+        [[nodiscard]] std::string getTitle() const;
 
-        void setTitle(const string &title_);
+        void setTitle(const std::string &title_);
 
         [[nodiscard]] int getRevision() const;
 
@@ -44,38 +41,38 @@ namespace yandex_music {
 
         void setTrackCount(const int &trackCount_);
 
-        [[nodiscard]] string getPlaylistUuid() const;
+        [[nodiscard]] std::string getPlaylistUuid() const;
 
-        void setPlaylistUuid(const string &playlistUuid_);
+        void setPlaylistUuid(const std::string &playlistUuid_);
 
         [[nodiscard]] int getKind() const;
 
         void setKind(const int &kind_);
 
-        void setId(const string &id_);
+        void setId(const std::string &id_);
 
 //    void deleteUserPlaylist();
         void downloadPlaylist();
 
         void getPlaylistTracks();
 
-        void addTracksToPlaylist(const vector<Track> &tracks);
+        void addTracksToPlaylist(const std::vector<Track> &tracks);
 
-        static void setOutput(const string &output_);
+        static void setOutput(const std::string &output_);
 
-        vector<Track> tracks;
-        unordered_set<string> artists;
+        std::vector<Track> tracks;
+        std::unordered_set<std::string> artists;
 
     private:
 
-        string title;
+        std::string title;
         int revision;
         int trackCount{};
-        string playlistUuid;
+        std::string playlistUuid;
         int kind{};
-        string userId;
+        std::string userId;
 
-        static string output_folder;
+        static std::string output_folder;
         std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
     };
 

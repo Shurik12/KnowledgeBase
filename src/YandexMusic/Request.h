@@ -1,22 +1,20 @@
 #include <Common/Curl.h>
+#include <Common/tinyxml2.h>
+
 #include <YandexMusic/Playlist.h>
 #include <YandexMusic/Track.h>
 #include <YandexMusic/DownloadInfo.h>
 #include <YandexMusic/User.h>
-#include <rapidjson/document.h>
+
 #include <fmt/format.h>
-#include <Common/tinyxml2.h>
+#include <rapidjson/document.h>
 
 #include <vector>
 
-using namespace std;
-using namespace rapidjson;
-using namespace tinyxml2;
-
-namespace yandex_music {
-
-    class Request : public Curl {
-
+namespace yandex_music 
+{
+    class Request : public Curl 
+    {
     public:
 
         Request() = default;
@@ -29,21 +27,23 @@ namespace yandex_music {
 
         static void processConfig();
 
-        void makeRequest(string &params, Document &document1);
+        void makeRequest(std::string &params, rapidjson::Document &document1);
 
-        void makeRequest(const string &url, XMLDocument &xml_response);
+        void makeRequest(const std::string &url, tinyxml2::XMLDocument &xml_response);
 
-        void makePostRequest(string &url_postfix, map<string, string> &body, Document &document);
+        void makePostRequest(
+            std::string &url_postfix, 
+            std::map<std::string, 
+            std::string> &body, 
+            rapidjson::Document &document);
 
-        // vector<Track> getDislikedTracksIds(string user_id);
+        // std::vector<Track> getDislikedTracksIds(string user_id);
         // Playlist getUserPlaylist(string user_id, string kind);
         // Playlist createUserPlaylist(...);
         // Playlist changeUserPlaylistName(string user, string kind, string name);
         // Playlist changeUserPlaylist(string user, string kind);
 
     private:
-
         const string url_prefix = "https://api.music.yandex.net:443/";
     };
-
 }

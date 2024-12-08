@@ -1,13 +1,14 @@
-#include <YandexMusic/Request.h>
-
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
+#include <YandexMusic/Request.h>
+#include <clickhouse/client.h>
+
+using namespace clickhouse;
 using namespace yandex_music;
 
 void multi_sink_example();
-
 // create a logger with 2 targets, with different log levels and formats.
 // The console will show only warnings or errors, while the file will log all.
 void multi_sink_example()
@@ -28,7 +29,8 @@ void multi_sink_example()
 int main()
 {
     multi_sink_example();
-    int flag = 5;
+
+    int flag = 1;
 
     yandex_music::Request request {};
     yandex_music::Request::processConfig();
