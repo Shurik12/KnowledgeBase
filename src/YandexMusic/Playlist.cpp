@@ -81,7 +81,7 @@ namespace yandex_music
     void Playlist::print() 
     {
         cout << this->title << ": " << this->kind << "\n";
-        logger->info(fmt::format("{}: {}", this->title, this->kind));
+        // logger->info(fmt::format("{}: {}", this->title, this->kind));
     }
 
     void Playlist::downloadPlaylist() 

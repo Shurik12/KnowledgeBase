@@ -1,10 +1,12 @@
+#include <iostream>
 #include <fmt/format.h>
+#include <rapidjson/document.h>
+
 #include <YandexMusic/Request.h>
-
+#include <Databases/PostgreSQL.h>
 #include <Common/httplib.h>
-using namespace httplib;
 
-using namespace std;
+using namespace httplib;
 
 std::string dump_headers(const Headers &headers)
 {
@@ -53,6 +55,8 @@ int main()
 
     svr.set_logger(logger);
 
+    PostgreSQL::createTableUser();
+
     svr.Get("/hi", [](const httplib::Request & /*req*/, Response &res)
     {
         res.set_content("Hello World!", "text/plain");
@@ -78,7 +82,8 @@ int main()
 //    });
 
     /// Capture the second segment of the request path as "id" path param
-    svr.Get("/cli/:command_id", [&](const httplib::Request& req, Response& res) {
+    svr.Get("/cli/:command_id", [&](const httplib::Request& req, Response& res) 
+    {
         auto command_id = std::stoi(req.path_params.at("command_id"));
 
         yandex_music::Request request {};
@@ -136,12 +141,56 @@ int main()
                 user.getUserPlaylists();
                 for (auto playlist : user.playlists)
                     playlist.downloadPlaylist();
+                break;
             }
 
             default:
                 std::cout << "Nothing to do\n";
         }
         res.set_content(fmt::format("Done {}!", command_id), "text/plain");
+    });
+
+    svr.Get("/stop", [&](const Request& req, Response& res) {
+        svr.stop();
+    });
+
+    svr.Post("/music/register", [&](const httplib::Request& req, Response& res) {
+        rapidjson::Document document;
+        document.Parse(req.body.c_str());
+
+        // get document (json) object keys
+        // for (auto& it : document.GetObject())
+        //    std::cout << it.name.GetString() << "\n";
+
+        std::string username = document["username"].GetString();
+        std::string password = document["password"].GetString();
+        std::string confirmation = document["confirmation"].GetString();
+        std::string email = document["email"].GetString();
+
+        int insertion = PostgreSQL::insertNewUser(username, email, password);
+        if (insertion == 0)
+            res.set_content(fmt::format("{\"username\": \"{}\", \"auth\": true, \"message\": \"\"}", username), "text/json");
+        else
+            res.set_content("{\"username\": \"\", \"auth\": false, \"message\": \"Username already taken.\"}", "text/json");
+    });
+
+    svr.Post("/music/login", [&](const httplib::Request& req, Response& res) {
+        
+        rapidjson::Document document;
+        document.Parse(req.body.c_str());
+        std::string username = document["username"].GetString();
+        std::string password = document["password"].GetString();
+
+        if (bool check = PostgreSQL::searchUser(username, password); check)
+            res.set_content(
+                fmt::format("{\"username\": \"{}\", \"auth\": true, \"message\": \"\"}", username), "text/json");
+        else
+            res.set_content(
+                "{\"username\": \"\", \"auth\": false, \"message\": \"Invalid username and/or password.\"}", "text/json");
+    });
+
+    svr.Post("/music/logout", [&](const httplib::Request& req, Response& res) {
+        res.set_content("{}", "text/json");
     });
 
 //    svr.Get("/music/categories", [&](const Request &req, Response &res) {
