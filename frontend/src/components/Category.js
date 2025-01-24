@@ -1,36 +1,45 @@
-import React, { Component } from "react";
-import { render } from "react-dom";
-import { BrowserRouter as Router, Link, NavLink, Route, useParams } from 'react-router-dom';
+import React from "react";
+import { useParams } from 'react-router';
 
 import { ListSong } from './ListSong';
 
-class Category extends React.Component {
+function withRouter(Component) {
+	function ComponentWithRouter(props) {
+		let params = useParams()
+		return <Component {...props} params={params} />
+	}
+	return ComponentWithRouter
+}
 
+class Category extends React.Component {
 	constructor(props) {
 		super(props);
+		// console.log(this.props.match.params.category);
 		this.state = {
-			category: this.props.match.params.category,
+			category: this.props.params.category,
+			// category: this.props.match.params.category,
+			// category: "jazz",
 			data: {},
-			isFetching: true, 
-			error: null 
+			isFetching: true,
+			error: null
 		};
 	}
 
 	componentDidMount() {
 		const category = this.state.category;
-		fetch(`/music/categories/${category}`)
+		fetch(`/music/category/${category}`)
 			.then(response => response.json())
 			.then(result => this.setState({
-			  data: result,
-				isFetching: false 
+				data: result,
+				isFetching: false
 			}))
 			.catch(e => {
-			  console.log(e);
-			  this.setState({
-			    data: result,
+				console.log(e);
+				this.setState({
+					data: result,
 					isFetching: false,
-			  	error: e
-			  });
+					error: e
+				});
 			});
 	}
 
@@ -41,15 +50,17 @@ class Category extends React.Component {
 
 		const category = this.state.category;
 
-		return ( 
+		return (
 			<div className="Category">
-				<h3 className="text-center" style={{ width: '60%' }}>{ category }</h3>
-				<ListSong 
-					data={ this.state.data }
+				<h3 className="text-center" style={{ width: '60%' }}>{category}</h3>
+				<ListSong
+					data={this.state.data}
 				/>
 			</div>
 		)
 	}
 }
 
-export default Category;
+const HOCCategory = withRouter(Category);
+
+export default HOCCategory;

@@ -103,6 +103,7 @@ namespace yandex_music
                 result[i].HasMember("lyricsAvailable") ? result[i]["lyricsAvailable"].GetBool() : false);
 
             processed_artists.clear();
+            processed_albums.clear();
 
             tracks.emplace_back(processed_track);
 //          for (auto& it : result[i].GetObject())
@@ -161,13 +162,13 @@ namespace yandex_music
     void User::getTracksWithoutPlaylist() 
     {
         std::ofstream result;
-        result.open("/home/alex/Git/KnowledgeBase/output/tracks_without_playlist.txt");
+        result.open("/home/alex/git/KnowledgeBase/output/tracks_without_playlist.txt");
 
         if (playlists.empty())
             getUserPlaylists();
 
         std::vector<Track> tracks_in_playlist;
-        std::vector<Track> tracks_out_playlist;
+        // std::vector<Track> tracks_out_playlist;
         std::vector<Track> tracks_out_like;
 
         for (auto playlist: playlists) 
@@ -187,10 +188,10 @@ namespace yandex_music
 
         sort(
             like_tracks.begin(), like_tracks.end(), 
-            [](auto &a, auto &b) { return a.getId() == b.getId(); });
+            [](auto &a, auto &b) { return a.getId() < b.getId(); });
         sort(
             tracks_in_playlist.begin(), tracks_in_playlist.end(),
-            [](auto &a, auto &b) { return a.getId() == b.getId(); });
+            [](auto &a, auto &b) { return a.getId() < b.getId(); });
 
         set_difference(
             like_tracks.begin(), like_tracks.end(),

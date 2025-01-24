@@ -30,7 +30,7 @@ int main()
     Clickhouse::createTableUser();
     multi_sink_example();
 
-    int flag = 1;
+    int flag = 2;
 
     yandex_music::Request request {};
     yandex_music::Request::processConfig();
@@ -87,6 +87,30 @@ int main()
             user.getUserPlaylists();
             for (auto playlist : user.playlists)
                 playlist.downloadPlaylist();
+            break;
+        }
+
+        /// Download playlist Like
+        case 7:
+        {
+            user.getLikeTracks();
+            yandex_music::Playlist playlist ("Like", 0, 0, "", 0, user_id);
+            playlist.tracks = user.like_tracks;
+            playlist.downloadPlaylist();
+            break;
+        }
+
+        /// Print playlist artists
+        case 8:
+        {
+            user.getUserPlaylists();
+            for (auto playlist: user.playlists)
+            {
+                playlist.print();
+                playlist.getPlaylistTracks();
+                for (auto artist : playlist.artists)
+                    std::cout << "\t" << artist << "\n";
+            }
         }
 
         default:

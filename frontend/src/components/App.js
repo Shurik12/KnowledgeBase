@@ -9,7 +9,6 @@ import WelcomePage from './WelcomePage';
 import Categories from './Categories';
 import Category from './Category';
 import Author from './Author';
-import Song from './Song';
 import Profile from './Profile';
 
 
@@ -218,14 +217,13 @@ class App extends Component {
 				</Navbar>
 
 				<Routes>
-					<Route exact path='/' element={<WelcomePage />} />
-					<Route path='/music/shurik_music' component={AllMusic} />
-					<Route path='/authors/:author' component={Author} />
-					<Route path='/profiles/:username' component={Profile} />
-					<Route path='/categories' element={<Categories />} />
-					<Route path='/category/:category' component={Category} />
+					<Route exact path='/' Component={WelcomePage} />
+					<Route path='/music/shurik_music' Component={AllMusic} />
+					<Route path='/authors/:author' Component={Author} />
+					<Route path='/profiles/:username' Component={Profile} />
+					<Route path='/categories' Component={Categories} />
+					<Route path='/category/:category' Component={Category} />
 				</Routes>
-
 			</HashRouter>
 		);
 	}
@@ -236,6 +234,6 @@ export default App;
 const root = ReactDOM.createRoot(document.getElementById("app"));
 root.render(
 	<React.StrictMode>
-    	<App />
-  	</React.StrictMode>
+		<App />
+	</React.StrictMode>
 );

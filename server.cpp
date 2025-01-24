@@ -1,4 +1,10 @@
 #include <iostream>
+#include <fstream>
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
 #include <fmt/format.h>
 #include <rapidjson/document.h>
 
@@ -22,7 +28,9 @@ std::string log(const httplib::Request &req, const Response &res) {
 
     std::string s;
     s += "Request: ===================================\n";
-    s += req.method + " " + req.version + " " + req.path;
+    s += "METHOD: " + req.method + "\n";
+    s += "VERSION: " + req.version + "\n";
+    s += "PATH: " + req.path + "\n";
 
     std::string query;
     for (auto it = req.params.begin(); it != req.params.end(); ++it)
@@ -45,8 +53,28 @@ std::string log(const httplib::Request &req, const Response &res) {
     return s;
 }
 
+void multi_sink_example();
+// create a logger with 2 targets, with different log levels and formats.
+// The console will show only warnings or errors, while the file will log all.
+void multi_sink_example()
+{
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::warn);
+    console_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/multisink.txt", true);
+    file_sink->set_level(spdlog::level::trace);
+    file_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
+
+    std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
+    auto logger = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
+    spdlog::register_logger(logger);
+}
+
 int main()
 {
+    multi_sink_example();
+
     Server svr;
 
     httplib::Logger logger = [](const auto& req, const auto& res) {
@@ -55,7 +83,11 @@ int main()
 
     svr.set_logger(logger);
 
-    PostgreSQL::createTableUser();
+    // Todo: create method initializeTables()
+    PostgreSQL::createTables();
+
+    // Todo: create method fillTables()
+    // PostgreSQL::fillTables();
 
     svr.Get("/hi", [](const httplib::Request & /*req*/, Response &res)
     {
@@ -68,6 +100,29 @@ int main()
 
     svr.Get("/public/main.js", [&](const httplib::Request &req, Response &res) {
         res.set_file_content("../frontend/public/main.js");
+    });
+
+    svr.Get("/public/reactPlayerFilePlayer.js", [&](const httplib::Request &req, Response &res) {
+        res.set_file_content("../frontend/public/reactPlayerFilePlayer.js");
+    });
+
+    svr.Get("/mediafiles/:filename", [&](const httplib::Request &req, Response &res) {
+        // auto filename = std::stoi(req.path_params.at("filename"));
+        std::string filename = "2.mp3";
+        ifstream file ("../frontend/mediafiles/2.mp3", ios::binary);
+        if (file.is_open())
+        {
+            auto size = file.tellg();
+            auto memblock = new char [size];
+            file.seekg (0, ios::beg);
+            file.read (memblock, size);
+            file.close();
+
+            res.set_content(memblock,  "audio/mpeg");
+
+            delete[] memblock;
+        }
+        else cout << "Unable to open file\n";
     });
 
     svr.Get("/src/index.js", [&](const httplib::Request &req, Response &res) {
@@ -89,25 +144,57 @@ int main()
         yandex_music::Request request {};
         yandex_music::Request::processConfig();
         yandex_music::User user {request.getUser()};
-        string user_id = user.getId();
+        std::string user_id = user.getId();
+
+        std::map<int, std::set<std::string>> playlists_map = {
+            {1027, {"Sum 41", "Iron Maiden", "Judas Priest"}},
+            {1059, {"Muse", "Imagine Dragons"}},
+            {1062, {"Rammstein", "Lindemann", "Scorpions"}},
+            {1063, {"Metallica", "Powerwolf", "Disturbed", "Sabaton", "Skillet"}},
+            {1064, {
+                "HammerFall", "Nightwish", "Lord Of The Lost", 
+                "Allen Lande", "Civil War", "Nils Patrik Johansson"}},
+            {1065, {
+                "Mötley Crüe", "Twisted Sister", "Bon Jovi", 
+                "Guns N' Roses", "Red Hot Chili Peppers", "Кипелов", "Ария"}},
+            {1066, {"Deep Purple", "Led Zeppelin", "Pink Floyd", "Queen"}},
+            {1067, {"Сказки Чёрного Города", "КняZz", "Кукольный театр", "Спектакль Джо", "Король и Шут"}},
+            {1068, {
+                "Песни под гитару", "Песни нашего века", "Борис Гребенщиков", 
+                "АКВАРИУМ", "Неизвестный исполнитель", "Urii Loza", "Наутилус Помпилиус", 
+                "Зодчие", "Порнофильмы", "BY Effect", "Альфа", "Nautilus Pompilius", "ЧайФ", 
+                "Пикник", "Земляне", "ДДТ", "Звери", "Юрий Хой", "Андрей Миронов", "Сектор Газа", 
+                "Александр Васильев", "Ногу свело!", "КИНО", "Серов Aлександр", "Мёртвые Дельфины", 
+                "Песни у костра", "Машина времени", "Сплин", "Би-2", "Магелланово Облако", "Виктор Цой", 
+                "Мумий Тролль", "Браво", "Крематорий", "Танцы Минус", "Павел Пиковский", "Аквариум", 
+                "Ляпис Трубецкой", "Агата Кристи", "Юрий Шевчук""Арктида", "Порнофильмы", "Земфира"
+            }},
+        };
+        std::vector<yandex_music::Track> add_tracks {};
+        yandex_music::Playlist playlist {};
+        int i=0;
 
         switch (command_id)
         {
             /// Print playlists
             case 1:
+            {
                 user.getUserPlaylists();
                 user.printUserPlaylists();
                 break;
+            }
 
-                /// Get tracks without playlist
+            /// Get tracks without playlist
             case 2:
+            {
                 user.getTracksWithoutPlaylist();
                 break;
+            }
 
-                /// Create, change and delete playlist
+            /// Create, change and delete playlist
             case 3:
             {
-                yandex_music::Playlist playlist {user.createPlaylist("Test3")};
+                playlist = user.createPlaylist("Test3");
                 user.changePlaylistName(playlist.getKind(), "Test4");
                 user.getLikeTracks();
                 playlist.addTracksToPlaylist(user.like_tracks);
@@ -115,7 +202,7 @@ int main()
                 break;
             }
 
-                /// Print track
+            /// Print track
             case 4:
             {
                 user.getUserPlaylists();
@@ -126,7 +213,7 @@ int main()
                 break;
             }
 
-                /// Download playlist
+            /// Download playlist
             case 5:
             {
                 user.getUserPlaylists();
@@ -135,12 +222,51 @@ int main()
                 break;
             }
 
-                /// Download all playlists
+            /// Download all playlists
             case 6:
             {
                 user.getUserPlaylists();
                 for (auto playlist : user.playlists)
                     playlist.downloadPlaylist();
+                break;
+            }
+
+            /// Download playlist Like
+            case 7:
+            {
+                user.getLikeTracks();
+                playlist = yandex_music::Playlist("Like", 0, 0, "", 0, user_id);
+                playlist.tracks = user.like_tracks;
+                playlist.downloadPlaylist();
+                break;
+            }
+
+            /// Add tracks to playlist
+            case 8:
+            {
+                user.getTracksWithoutPlaylist();
+                for (const auto& kv_pair : playlists_map)
+                {
+                    playlist = user.getPlaylist(kv_pair.first); 
+                    for (auto track : user.tracks_out_playlist)
+                        if (auto search = kv_pair.second.find(track.getArtists()[0]); search != kv_pair.second.end())
+                            add_tracks.push_back(track);
+                    playlist.addTracksToPlaylist(add_tracks);
+                    add_tracks.clear();
+                }
+                break;
+            }
+            
+            /// Remove all tracks from playlist
+            case 9:
+            {
+                for (const auto& kv_pair : playlists_map)
+                {
+                    playlist = user.getPlaylist(kv_pair.first);
+                    playlist.getPlaylistTracks();
+                    if (playlist.tracks.size() > 0)
+                        playlist.deleteTracksFromPlaylist(playlist.tracks);
+                }
                 break;
             }
 
@@ -153,6 +279,11 @@ int main()
     svr.Get("/stop", [&](const Request& req, Response& res) {
         svr.stop();
     });
+
+    // svr.Get("/users/:id", [&](const Request& req, Response& res) {
+    //     auto user_id = req.path_params.at("id");
+    //     res.set_content(user_id, "text/plain");
+    // });
 
     svr.Post("/music/register", [&](const httplib::Request& req, Response& res) {
         rapidjson::Document document;
@@ -189,13 +320,32 @@ int main()
                 "{\"username\": \"\", \"auth\": false, \"message\": \"Invalid username and/or password.\"}", "text/json");
     });
 
-    svr.Post("/music/logout", [&](const httplib::Request& req, Response& res) {
+    svr.Post("/music/logout", [&](const httplib::Request& req, httplib::Response& res) {
         res.set_content("{}", "text/json");
     });
 
-//    svr.Get("/music/categories", [&](const Request &req, Response &res) {
-//        return response(x);
-//    });
+   svr.Get("/music/category/:category", [&](const httplib::Request& req, httplib::Response& res) {
+        std::string tracks;
+        std::string category = req.path_params.at("category");
+        std::cout << category << "\n";
+        PostgreSQL::getCategoryTracks(category, tracks);
+        res.set_content(tracks, "text/json");
+   });
+
+   svr.Get("/music/categories", [&](const httplib::Request& req, httplib::Response& res) {
+        std::vector<std::string> categories;
+        PostgreSQL::getCategories(categories);
+        std::string content = "{\"categories\": [";
+        for (auto & category : categories)
+            content += "{\"name\": \"" + category + "\"},";
+        content.pop_back();
+        content += "]}";
+        res.set_content(content, "text/json");
+   });
+
+   svr.Get("/mediafiles/:file", [&](const httplib::Request& req, httplib::Response& res) {
+        res.set_content({}, "text/json");
+   });
 
 //    int port = svr.bind_to_any_port("0.0.0.0");
 //    std::cout << port;

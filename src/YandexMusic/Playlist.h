@@ -57,6 +57,7 @@ namespace yandex_music
         void getPlaylistTracks();
 
         void addTracksToPlaylist(const std::vector<Track> &tracks);
+        void deleteTracksFromPlaylist(std::vector<Track> &tracks);
 
         static void setOutput(const std::string &output_);
 

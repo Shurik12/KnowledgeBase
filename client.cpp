@@ -17,6 +17,9 @@ int main(void)
     std::cout << "\t4. Print track\n";
     std::cout << "\t5. Download playlist\n";
     std::cout << "\t6. Download all playlists\n";
+    std::cout << "\t7. Download Like tracks as playlist\n";
+    std::cout << "\t8. Add tracks to playlist\n";
+    std::cout << "\t9. Remove all tracks from playlist\n";
 
     httplib::Client cli("localhost", 8080);
 

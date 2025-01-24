@@ -89,7 +89,8 @@ namespace yandex_music
         logger->info(fmt::format("Playlist to download: {}", title));
         std::string playlist_folder = output_folder + "/" + title;
         std::filesystem::create_directories(playlist_folder);
-        getPlaylistTracks();
+        if (title != "Like")
+            getPlaylistTracks();
 
         std::string tracks_folder = playlist_folder + "/tracks";
         std::string lyrics_folder = playlist_folder + "/lyrics";
@@ -178,6 +179,7 @@ namespace yandex_music
             if (!processed_artists.empty())
                 artists.insert(processed_artists[0]);
             processed_artists.clear();
+            processed_albums.clear();
             tracks.emplace_back(processed_track);
         }
     }
@@ -195,10 +197,35 @@ namespace yandex_music
 
         std::string url{"users/" + userId + "/playlists/" + to_string(kind) + "/change-relative"};
         std::map<std::string, std::string> body;
+
+        std::string diff = fmt::format(R"({{"diff":{{"op":"insert","at":{},"tracks":[)", 0);
+        for (auto track : tracks)
+            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.getId(), track.getAlbums()[0]);
+        diff.pop_back();
+        diff += fmt::format(R"(]}}}})");
+
+        body["revision"]  = to_string(revision);
+        body["diff"] = diff;
+        
+        request.makePostRequest(url, body, document);
+    }
+
+    void Playlist::deleteTracksFromPlaylist(std::vector<Track> &tracks) 
+    {
+        rapidjson::Document document;
+        Request request;
+        std::string url{"users/" + userId + "/playlists/" + to_string(kind) + "/change-relative"};
+        std::map<std::string, std::string> body;
+        
+        std::string diff = fmt::format(R"({{"diff":{{"op":"delete","from":{},"to": {},"tracks":[)", 0, tracks.size());
+        for (auto track : tracks)
+            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.getId(), track.getAlbums()[0]);
+        diff.pop_back();
+        diff += fmt::format(R"(]}}}})");
+
         body["revision"] = to_string(revision);
-        body["diff"] = fmt::format(
-                            R"({{"diff":{{"op":"insert","at":{},"tracks":[{{"id":"{}","albumId":"{}"}}]}}}})", 0,
-                            tracks[0].getId(), tracks[0].getAlbums()[0]);
+        body["diff"] = diff;
+
         request.makePostRequest(url, body, document);
     }
 

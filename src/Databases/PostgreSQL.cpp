@@ -1,8 +1,8 @@
 #include <iostream>
-#include <pqxx/pqxx>
 #include <fmt/format.h>
 #include <Databases/PostgreSQL.h>
 
+// Example from official libpxx github
 int PostgreSQL::createTable()
 {
 	try
@@ -84,58 +84,97 @@ int PostgreSQL::createTable()
 	return 0;
 }
 
-int PostgreSQL::createTableUser()
+pqxx::connection PostgreSQL::openConnection()
+{
+	// Connect to the database.  You can have multiple connections open
+	// at the same time, even to the same database.
+	pqxx::connection conn(
+		"dbname=knowledgebase \
+		user=postgres \
+		password=postgres \
+		host=localhost \
+		port=5432 \
+		target_session_attrs=read-write");
+	std::cout << "Connected to " << conn.dbname() << '\n';
+	return conn;
+}
+
+void PostgreSQL::executeQueries(std::vector<std::string> & queries)
 {
 	try
 	{
-		// Connect to the database.  You can have multiple connections open
-		// at the same time, even to the same database.
-		pqxx::connection conn(
-			"dbname=knowledgebase \
-			user=postgres \
-			password=postgres \
-			host=localhost \
-			port=5432 \
-			target_session_attrs=read-write");
-		std::cout << "Connected to " << conn.dbname() << '\n';
-
+		pqxx::connection conn = PostgreSQL::openConnection();
 		pqxx::work txn{conn};
-		txn.exec("CREATE TABLE IF NOT EXISTS users ( \
-            id serial PRIMARY KEY, \
-            name varchar(30), \
-            email varchar(50), \
-			password varchar(20), \
-            UNIQUE(name))");
-		txn.exec("INSERT INTO users VALUES \
-            (DEFAULT, 'one', 'one@yandex.ru', 'password_one'), \
-			(DEFAULT, 'two', 'two@yandex.ru', 'password_two'), \
-            (DEFAULT, 'three', 'three@yandex.ru', 'password_three')");
+		for (std::string & query : queries)
+		txn.exec(query);
     	txn.commit();
-
 	}
 	catch (std::exception const &e)
 	{
 		std::cerr << "ERROR: " << e.what() << '\n';
-		return 1;
 	}
-	return 0;
+}
+
+void PostgreSQL::createTables()
+{
+	std::vector<std::string> queries;
+	queries.emplace_back(
+		"CREATE TABLE IF NOT EXISTS users ( \
+		id serial PRIMARY KEY, \
+		name varchar(30), \
+		email varchar(50), \
+		password varchar(20), \
+		UNIQUE(name))");
+	queries.emplace_back(
+		"INSERT INTO users VALUES \
+		(DEFAULT, 'one', 'one@yandex.ru', 'password_one'), \
+		(DEFAULT, 'two', 'two@yandex.ru', 'password_two'), \
+		(DEFAULT, 'three', 'three@yandex.ru', 'password_three')");
+	queries.emplace_back(
+		"CREATE TABLE IF NOT EXISTS categories ( \
+		id serial PRIMARY KEY, \
+		name varchar(30), \
+		UNIQUE(name))");
+	queries.emplace_back(
+		"CREATE TABLE IF NOT EXISTS tracks ( \
+		id serial PRIMARY KEY, \
+		name VARCHAR(30), \
+		author VARCHAR(50), \
+		\"like\" BOOLEAN NOT NULL, \
+		station varchar(30), \
+		UNIQUE(name))");
+	executeQueries(queries);
+}
+
+void PostgreSQL::fillTables()
+{
+	std::vector<std::string> queries;
+	queries.emplace_back(
+		"INSERT INTO users VALUES \
+		(DEFAULT, 'one', 'one@yandex.ru', 'password_one'), \
+		(DEFAULT, 'two', 'two@yandex.ru', 'password_two'), \
+		(DEFAULT, 'three', 'three@yandex.ru', 'password_three')");
+	queries.emplace_back(
+		"INSERT INTO categories VALUES \
+		(DEFAULT, 'bard'), \
+		(DEFAULT, 'classic'), \
+		(DEFAULT, 'jazz'), \
+		(DEFAULT, 'metal'), \
+		(DEFAULT, 'pank'), \
+		(DEFAULT, 'pop'), \
+		(DEFAULT, 'rock')");
+	queries.emplace_back(
+		"INSERT INTO tracks VALUES \
+		(DEFAULT, 'Sonne', 'Rammstein', TRUE, 'metal'), \
+		(DEFAULT, 'Still Loving You', 'Scorpions', FALSE, 'jazz')");
+	executeQueries(queries);
 }
 
 int PostgreSQL::insertNewUser(std::string name, std::string email, std::string password)
 {
 	try
 	{
-		// Connect to the database.  You can have multiple connections open
-		// at the same time, even to the same database.
-		pqxx::connection conn(
-			"dbname=knowledgebase \
-			user=postgres \
-			password=postgres \
-			host=localhost \
-			port=5432 \
-			target_session_attrs=read-write");
-		std::cout << "Connected to " << conn.dbname() << '\n';
-
+		pqxx::connection conn = openConnection();
 		pqxx::work txn{conn};
 		txn.exec(fmt::format("INSERT INTO users VALUES (DEFAULT, '{}', '{}', '{}')", name, email, password));
     	txn.commit();
@@ -153,17 +192,7 @@ bool PostgreSQL::searchUser(std::string name, std::string password)
 {
 	try
 	{
-		// Connect to the database.  You can have multiple connections open
-		// at the same time, even to the same database.
-		pqxx::connection conn(
-			"dbname=knowledgebase \
-			user=postgres \
-			password=postgres \
-			host=localhost \
-			port=5432 \
-			target_session_attrs=read-write");
-		std::cout << "Connected to " << conn.dbname() << '\n';
-
+		pqxx::connection conn = openConnection();
 		pqxx::work txn{conn};
 		int cnt = txn.query_value<int>(
 			fmt::format("SELECT count(*) FROM users WHERE name='{}' AND password='{}'", name, password));
@@ -174,5 +203,45 @@ bool PostgreSQL::searchUser(std::string name, std::string password)
 	{
 		std::cerr << "ERROR: " << e.what() << '\n';
 		return false;
+	}
+}
+
+void PostgreSQL::getCategories(std::vector<std::string> & categories)
+{
+	try
+	{
+		pqxx::connection conn = openConnection();
+		pqxx::work txn{conn};
+		for (auto name : txn.query<std::string>("SELECT name FROM categories;"))
+			categories.emplace_back(std::get<0>(name));
+    	txn.commit();
+	}
+	catch (std::exception const &e)
+	{
+		std::cerr << "ERROR: " << e.what() << '\n';
+	}
+}
+
+void PostgreSQL::getCategoryTracks(std::string & category, std::string & tracks)
+{
+	try
+	{
+		tracks = "{\"user\": \"user\", \"tracks\": [";
+		std::string track;
+		pqxx::connection conn = openConnection();
+		pqxx::work txn{conn};
+		for (auto [id, name, author] : txn.query<int, std::string, std::string>(
+			fmt::format("SELECT id, name, author FROM tracks WHERE station=\'{}\';", category)))
+		{
+			track = fmt::format("{{\"id\": {}, \"name\": \"{}\", \"author\": \"{}\", \"like\": []}},", id, name, author);
+			tracks += track;
+		}
+		tracks.pop_back();
+        tracks += "]}";
+    	txn.commit();
+	}
+	catch (std::exception const &e)
+	{
+		std::cerr << "ERROR: " << e.what() << '\n';
 	}
 }

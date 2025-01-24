@@ -50,6 +50,7 @@ namespace yandex_music
 
         std::vector<Playlist> playlists;
         std::vector<Track> like_tracks;
+        std::vector<Track> tracks_out_playlist;
 
         std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
 
