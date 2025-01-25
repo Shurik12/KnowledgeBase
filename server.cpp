@@ -7,6 +7,10 @@
 
 #include <fmt/format.h>
 #include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/ostreamwrapper.h>
 
 #include <YandexMusic/Request.h>
 #include <Databases/PostgreSQL.h>
@@ -46,7 +50,7 @@ std::string log(const httplib::Request &req, const Response &res) {
     s += dump_headers(res.headers);
     s += "\n";
 
-    if (!res.body.empty()) { s += res.body; }
+    if (!res.body.empty()) { s += res.body + "\n"; }
 
     s += "\n";
 
@@ -137,39 +141,50 @@ int main()
 //    });
 
     /// Capture the second segment of the request path as "id" path param
-    svr.Get("/cli/:command_id", [&](const httplib::Request& req, Response& res) 
-    {
+    svr.Get("/cli/:command_id", [&](const httplib::Request& req, Response& res) {
         auto command_id = std::stoi(req.path_params.at("command_id"));
 
         yandex_music::Request request {};
-        yandex_music::Request::processConfig();
+        if (!yandex_music::Request::processConfig())
+            std::cout << "Error: bad configuration file!\n";
+
         yandex_music::User user {request.getUser()};
         std::string user_id = user.getId();
 
-        std::map<int, std::set<std::string>> playlists_map = {
-            {1027, {"Sum 41", "Iron Maiden", "Judas Priest"}},
-            {1059, {"Muse", "Imagine Dragons"}},
-            {1062, {"Rammstein", "Lindemann", "Scorpions"}},
-            {1063, {"Metallica", "Powerwolf", "Disturbed", "Sabaton", "Skillet"}},
-            {1064, {
-                "HammerFall", "Nightwish", "Lord Of The Lost", 
-                "Allen Lande", "Civil War", "Nils Patrik Johansson"}},
-            {1065, {
-                "Mötley Crüe", "Twisted Sister", "Bon Jovi", 
-                "Guns N' Roses", "Red Hot Chili Peppers", "Кипелов", "Ария"}},
-            {1066, {"Deep Purple", "Led Zeppelin", "Pink Floyd", "Queen"}},
-            {1067, {"Сказки Чёрного Города", "КняZz", "Кукольный театр", "Спектакль Джо", "Король и Шут"}},
-            {1068, {
-                "Песни под гитару", "Песни нашего века", "Борис Гребенщиков", 
-                "АКВАРИУМ", "Неизвестный исполнитель", "Urii Loza", "Наутилус Помпилиус", 
-                "Зодчие", "Порнофильмы", "BY Effect", "Альфа", "Nautilus Pompilius", "ЧайФ", 
-                "Пикник", "Земляне", "ДДТ", "Звери", "Юрий Хой", "Андрей Миронов", "Сектор Газа", 
-                "Александр Васильев", "Ногу свело!", "КИНО", "Серов Aлександр", "Мёртвые Дельфины", 
-                "Песни у костра", "Машина времени", "Сплин", "Би-2", "Магелланово Облако", "Виктор Цой", 
-                "Мумий Тролль", "Браво", "Крематорий", "Танцы Минус", "Павел Пиковский", "Аквариум", 
-                "Ляпис Трубецкой", "Агата Кристи", "Юрий Шевчук""Арктида", "Порнофильмы", "Земфира"
-            }},
-        };
+        // Processing json playlists_map.json config-------------------------------
+        int kind = 0;
+        std::map<int, std::set<std::string>> playlists_map;
+
+        std::ifstream ifs {"/home/alex/git/KnowledgeBase/playlists_map.json"};
+        if ( !ifs.is_open() )
+        {
+            std::cerr << "Could not open file for reading!\n";
+        }
+        rapidjson::IStreamWrapper isw { ifs };
+        rapidjson::Document document {};
+        document.ParseStream( isw );
+        assert(document.IsObject());
+        for (auto & itr: document.GetObject())
+        {
+            assert(itr.value.IsObject());
+            for (auto & itr1 : itr.value.GetObject())
+            {
+                if (std::string(itr1.name.GetString()) == "kind")
+                {
+                    kind = itr1.value.GetInt();
+                    playlists_map[kind] = {};
+                }
+
+                if (std::string(itr1.name.GetString()) == "authors")
+                {
+                    assert(itr1.value.IsArray());
+                    for (auto & itr2 : itr1.value.GetArray())
+                        playlists_map[kind].insert(itr2.GetString());
+                }
+            }
+        }
+        //-------------------------------------------------------------------------
+
         std::vector<yandex_music::Track> add_tracks {};
         yandex_music::Playlist playlist {};
         int i=0;
@@ -181,7 +196,7 @@ int main()
             {
                 user.getUserPlaylists();
                 user.printUserPlaylists();
-                break;
+                break;   
             }
 
             /// Get tracks without playlist

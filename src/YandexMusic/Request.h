@@ -25,7 +25,7 @@ namespace yandex_music
 
         User getUser();
 
-        static void processConfig();
+        static bool processConfig();
 
         void makeRequest(std::string &params, rapidjson::Document &document1);
 

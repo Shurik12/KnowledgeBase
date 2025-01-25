@@ -7,7 +7,7 @@
 namespace yandex_music 
 {
     std::string Playlist::output_folder;
-
+    
     Playlist::Playlist(
         string title_,
         int revision_,

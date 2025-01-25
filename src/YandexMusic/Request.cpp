@@ -4,23 +4,27 @@
 
 namespace yandex_music 
 {
-    void Request::processConfig()
+    bool Request::processConfig()
     {
         tinyxml2::XMLDocument xml_doc;
         tinyxml2::XMLError eResult = xml_doc.LoadFile("/home/alex/git/KnowledgeBase/config.xml");
+
         if (eResult != tinyxml2::XML_SUCCESS)
-            cout << "Error!\n";
+            return false;
 
         tinyxml2::XMLNode *root = xml_doc.FirstChild();
         if (root == nullptr)
-            cout << "Error!\n";
+            return false;
 
         auto token = root->FirstChildElement("token")->GetText();
         auto output_folder = root->FirstChildElement("output_folder")->GetText();
         auto log_folder = root->FirstChildElement("log_folder")->GetText();
+
         Curl::setToken(token);
         Playlist::setOutput(output_folder);
         User::setLog(log_folder);
+
+        return true;
     }
 
     User Request::getUser() 
