@@ -161,9 +161,6 @@ namespace yandex_music
 
     void User::getTracksWithoutPlaylist() 
     {
-        std::ofstream result;
-        result.open("/home/alex/git/KnowledgeBase/output/tracks_without_playlist.txt");
-
         if (playlists.empty())
             getUserPlaylists();
 
@@ -179,12 +176,10 @@ namespace yandex_music
         }
 
         logger->info(fmt::format("Count tracks in any playlist: {}", tracks_in_playlist.size()));
-        result << fmt::format("Count tracks in any playlist: {}\n", tracks_in_playlist.size());
 
         getLikeTracks();
 
         logger->info(fmt::format("All tracks: {}", like_tracks.size()));
-        result << fmt::format("All tracks: {}\n", like_tracks.size());
 
         sort(
             like_tracks.begin(), like_tracks.end(), 
@@ -209,19 +204,12 @@ namespace yandex_music
         logger->info(fmt::format("Count tracks out of like: {}", tracks_out_like.size()));
         logger->info(fmt::format("Tracks out of playlist:"));
 
-        result << fmt::format("Count tracks out of playlist: {}\n", tracks_out_playlist.size());
-        result << fmt::format("Count tracks out of like: {}\n", tracks_out_like.size());
-        result << fmt::format("Tracks out of playlist:\n");
-
         for (const auto &track: tracks_out_playlist) 
         {
             auto artists = track.getArtists();
             std::string name = artists.empty() ? track.getTitle() : artists[0] + " - " + track.getTitle();
             logger->info(fmt::format("\t{}", name));
-            result << fmt::format("\t{}\n", name);
         }
-
-        result.close();
     }
 
     Playlist User::createPlaylist(const std::string &title) 

@@ -60,13 +60,14 @@ std::string log(const httplib::Request &req, const Response &res) {
 void multi_sink_example();
 // create a logger with 2 targets, with different log levels and formats.
 // The console will show only warnings or errors, while the file will log all.
-void multi_sink_example()
+void multi_sink_example(std::string log_folder)
 {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_level(spdlog::level::warn);
     console_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
 
-    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/multisink.txt", true);
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_folder + "/multisink.txt", true);
+    std::cout << log_folder << "\n";
     file_sink->set_level(spdlog::level::trace);
     file_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
 
@@ -77,7 +78,50 @@ void multi_sink_example()
 
 int main()
 {
-    multi_sink_example();
+    yandex_music::Request request {};
+    if (!yandex_music::Request::processConfig())
+        std::cout << "Error: bad configuration file!\n";
+    multi_sink_example(yandex_music::User::log_folder);
+
+    yandex_music::User user {request.getUser()};
+    std::string user_id = user.getId();
+
+    // Processing json playlists_map.json config-------------------------------
+    int kind = 0;
+    std::map<int, std::set<std::string>> playlists_map;
+
+    std::ifstream ifs {"playlists_map.json"};
+    if ( !ifs.is_open() )
+    {
+        std::cerr << "Could not open file for reading!\n";
+    }
+    else
+    {   
+        rapidjson::IStreamWrapper isw { ifs };
+        rapidjson::Document document {};
+        document.ParseStream( isw );
+        assert(document.IsObject());
+        for (auto & itr: document.GetObject())
+        {
+            assert(itr.value.IsObject());
+            for (auto & itr1 : itr.value.GetObject())
+            {
+                if (std::string(itr1.name.GetString()) == "kind")
+                {
+                    kind = itr1.value.GetInt();
+                    playlists_map[kind] = {};
+                }
+
+                if (std::string(itr1.name.GetString()) == "authors")
+                {
+                    assert(itr1.value.IsArray());
+                    for (auto & itr2 : itr1.value.GetArray())
+                        playlists_map[kind].insert(itr2.GetString());
+                }
+            }
+        }
+    }
+    //-------------------------------------------------------------------------
 
     Server svr;
 
@@ -143,47 +187,6 @@ int main()
     /// Capture the second segment of the request path as "id" path param
     svr.Get("/cli/:command_id", [&](const httplib::Request& req, Response& res) {
         auto command_id = std::stoi(req.path_params.at("command_id"));
-
-        yandex_music::Request request {};
-        if (!yandex_music::Request::processConfig())
-            std::cout << "Error: bad configuration file!\n";
-
-        yandex_music::User user {request.getUser()};
-        std::string user_id = user.getId();
-
-        // Processing json playlists_map.json config-------------------------------
-        int kind = 0;
-        std::map<int, std::set<std::string>> playlists_map;
-
-        std::ifstream ifs {"/home/alex/git/KnowledgeBase/playlists_map.json"};
-        if ( !ifs.is_open() )
-        {
-            std::cerr << "Could not open file for reading!\n";
-        }
-        rapidjson::IStreamWrapper isw { ifs };
-        rapidjson::Document document {};
-        document.ParseStream( isw );
-        assert(document.IsObject());
-        for (auto & itr: document.GetObject())
-        {
-            assert(itr.value.IsObject());
-            for (auto & itr1 : itr.value.GetObject())
-            {
-                if (std::string(itr1.name.GetString()) == "kind")
-                {
-                    kind = itr1.value.GetInt();
-                    playlists_map[kind] = {};
-                }
-
-                if (std::string(itr1.name.GetString()) == "authors")
-                {
-                    assert(itr1.value.IsArray());
-                    for (auto & itr2 : itr1.value.GetArray())
-                        playlists_map[kind].insert(itr2.GetString());
-                }
-            }
-        }
-        //-------------------------------------------------------------------------
 
         std::vector<yandex_music::Track> add_tracks {};
         yandex_music::Playlist playlist {};
@@ -259,15 +262,18 @@ int main()
             /// Add tracks to playlist
             case 8:
             {
-                user.getTracksWithoutPlaylist();
-                for (const auto& kv_pair : playlists_map)
+                if (!playlists_map.empty()) 
                 {
-                    playlist = user.getPlaylist(kv_pair.first); 
-                    for (auto track : user.tracks_out_playlist)
-                        if (auto search = kv_pair.second.find(track.getArtists()[0]); search != kv_pair.second.end())
-                            add_tracks.push_back(track);
-                    playlist.addTracksToPlaylist(add_tracks);
-                    add_tracks.clear();
+                    user.getTracksWithoutPlaylist();
+                    for (const auto& kv_pair : playlists_map)
+                    {
+                        playlist = user.getPlaylist(kv_pair.first); 
+                        for (auto track : user.tracks_out_playlist)
+                            if (auto search = kv_pair.second.find(track.getArtists()[0]); search != kv_pair.second.end())
+                                add_tracks.push_back(track);
+                        playlist.addTracksToPlaylist(add_tracks);
+                        add_tracks.clear();
+                    }
                 }
                 break;
             }
@@ -275,13 +281,14 @@ int main()
             /// Remove all tracks from playlist
             case 9:
             {
-                for (const auto& kv_pair : playlists_map)
-                {
-                    playlist = user.getPlaylist(kv_pair.first);
-                    playlist.getPlaylistTracks();
-                    if (playlist.tracks.size() > 0)
-                        playlist.deleteTracksFromPlaylist(playlist.tracks);
-                }
+                if (!playlists_map.empty()) 
+                    for (const auto& kv_pair : playlists_map)
+                    {
+                        playlist = user.getPlaylist(kv_pair.first);
+                        playlist.getPlaylistTracks();
+                        if (playlist.tracks.size() > 0)
+                            playlist.deleteTracksFromPlaylist(playlist.tracks);
+                    }
                 break;
             }
 
