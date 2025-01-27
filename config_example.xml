@@ -1,5 +1,7 @@
 <knowledgebase>
 	<token>yandex music token</token>
-	<output_folder>/home/user/cmake-build-debug/Music/data</output_folder>
-	<log_folder>/home/user/cmake-build-debug/Music/log</log_folder>
+	<output_folder>path relative to project root(Music/data)</output_folder>
+	<log_folder>path relative to project root(Music/log)</log_folder>
+	<host>0.0.0.0</host>
+	<port>8080</port>
 </knowledgebase>

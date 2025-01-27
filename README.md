@@ -12,24 +12,30 @@ Or another way:
 3. Copy access_token part from url
 
 ## Build
-
 ```bash
-# Create default profile by path: /home/alex/.conan2/profiles/default
+git clone https://github.com/Shurik12/KnowledgeBase.git && \
+cd KnowledgeBase
+
+# Create default profile
 conan profile detect --force
 
 # Create another (ex. debug) version of profile: cp and edit file
-cp /home/alex/.conan2/profiles/default /home/alex/.conan2/profiles/debug
+cp conan_profile /root/.conan2/profiles/debug
 
 # Install debug version to build/ folder
-conan install . --output-folder=build --build=missing --profile=debug
-
-# Build project
-cd build/
-cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/clang-18 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-18
-cmake --build .
+conan install . --output-folder=build --build=missing --profile=debug && \
+cd build && \
+cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/clang-18 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-18 && \
+cmake --build . && \
 ```
 
-## Run project
+## Run
+
+### Dev container
+```bash
+./restart.sh
+```
+
 ### Command line
 1. Put two files config.xml playlist_map.json to the binary (server) directory
 ```bash
