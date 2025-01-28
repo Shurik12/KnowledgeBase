@@ -16,7 +16,5 @@ RUN \
   dpkg -i conan-2.10.1-amd64.deb && \
   rm -f conan-2.10.1-amd64.deb
 
-COPY entrypoint.sh /
-
 WORKDIR /root/Knowledgebase
-ENTRYPOINT [ "/entrypoint.sh" ]
+CMD [ "tail", "-f", "/dev/null" ]
