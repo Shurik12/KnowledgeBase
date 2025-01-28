@@ -1,0 +1,7 @@
+<knowledgebase>
+	<token></token>
+	<output_folder>Music/data</output_folder>
+	<log_folder>Music/log</log_folder>
+	<host>0.0.0.0</host>
+	<port>8080</port>
+</knowledgebase>
