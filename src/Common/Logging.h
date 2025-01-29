@@ -1,0 +1,1 @@
+void multi_sink_example(const std::string &);

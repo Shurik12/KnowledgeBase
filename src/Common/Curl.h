@@ -8,24 +8,23 @@ using namespace std;
  
 class Curl
 {
-
 protected:    // User declarations
 
-    static string token;
+    static std::string token;
     static char errorBuffer[CURL_ERROR_SIZE];
-    static int writer(char *data, size_t size, size_t nmemb, string *buffer);
-    static string easycurl(const string &url, bool post, const string &postparamstring);
-    static string urlencode(const string &c);
-    static string char2hex(char dec);    
+    static int writer(char *data, size_t size, size_t nmemb, std::string *buffer);
+    static std::string easycurl(const std::string &url, bool post, const std::string &postparamstring);
+    static std::string urlencode(const std::string &c);
+    static std::string char2hex(char dec);    
  
 public:        // User declarations
     
     Curl()= default;
     ~Curl()= default;
     friend class User;
-    static string buffer;
-    static string post(const string & url, map<string, string> & abbrevs);
-    static string get(const string & url, map<string, string> & abbrevs);
-    static string get(const string & url);
-    static void setToken(const string & token);
+    static std::string buffer;
+    static std::string post(const std::string & url, std::map<std::string, std::string> & abbrevs);
+    static std::string get(const std::string & url, std::map<std::string, std::string> & abbrevs);
+    static std::string get(const std::string & url);
+    static void setToken(const std::string & token);
 };

@@ -3,13 +3,7 @@
 KnowledgeBase is an open-source data management application, that allow manage all of your data from other different services. 
 
 ## How To Get Yandex Music Token
-The best way:
-1. https://yandex-music.readthedocs.io/en/main/token.html
-
-Or another way:
-1. Singin to your account in yandex passport
-2. Go to link https://oauth.yandex.ru/authorize?response_type=token&client_id=cc01d5dbc7de4925bdf07f33bd3dfd61
-3. Copy access_token part from url
+https://yandex-music.readthedocs.io/en/main/token.html
 
 ## Build
 ```bash
@@ -23,10 +17,10 @@ conan profile detect --force
 cp conan_profile /root/.conan2/profiles/debug
 
 # Install debug version to build/ folder
-conan install . --output-folder=build --build=missing --profile=debug && \
-cd build && \
-cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/clang-18 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-18 && \
-cmake --build . && \
+conan install . --output-folder=build --build=missing --profile=debug
+cd build
+cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/clang-18 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-18
+cmake --build .
 ```
 
 ## Run

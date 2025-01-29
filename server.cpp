@@ -15,6 +15,7 @@
 #include <YandexMusic/Request.h>
 #include <Databases/PostgreSQL.h>
 #include <Common/httplib.h>
+#include <Common/Logging.h>
 
 using namespace httplib;
 
@@ -57,31 +58,12 @@ std::string log(const httplib::Request &req, const Response &res) {
     return s;
 }
 
-void multi_sink_example();
-// create a logger with 2 targets, with different log levels and formats.
-// The console will show only warnings or errors, while the file will log all.
-void multi_sink_example(std::string log_folder)
-{
-    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    console_sink->set_level(spdlog::level::warn);
-    console_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
-
-    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_folder + "/multisink.txt", true);
-    std::cout << log_folder << "\n";
-    file_sink->set_level(spdlog::level::trace);
-    file_sink->set_pattern("[%H:%M:%S %z] [thread %t] [%^%l%$] %v");
-
-    std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-    auto logger = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
-    spdlog::register_logger(logger);
-}
-
 int main()
 {
     yandex_music::Request request {};
     if (!yandex_music::Request::processConfig())
         std::cout << "Error: bad configuration file!\n";
-    multi_sink_example(yandex_music::User::log_folder);
+    multi_sink_example(yandex_music::User::log_folder + "/multisink.log");
 
     yandex_music::User user {request.getUser()};
     std::string user_id = user.getId();

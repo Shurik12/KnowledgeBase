@@ -22,6 +22,7 @@ namespace yandex_music
 
     void User::printUserPlaylists() 
     {
+        logger->info("Current user playlist in format title: kind");
         for (auto playlist: playlists)
             playlist.print();
     }

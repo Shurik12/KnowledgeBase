@@ -16,6 +16,7 @@ namespace yandex_music
     {
     public:
 
+        User() = default;
         explicit User(std::string id_);
 
         ~User() = default;

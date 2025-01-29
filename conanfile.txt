@@ -2,6 +2,7 @@
 clickhouse-cpp/2.5.1
 double-conversion/3.3.0
 fmt/11.0.2
+gtest/1.15.0
 libcurl/8.11.1
 libpqxx/7.10.0 
 lz4/1.9.4
