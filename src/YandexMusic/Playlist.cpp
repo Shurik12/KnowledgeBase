@@ -9,12 +9,12 @@ namespace yandex_music
     std::string Playlist::output_folder;
     
     Playlist::Playlist(
-        string title_,
+        std::string title_,
         int revision_,
         int trackCount_,
-        string playlistUuid_,
+        std::string playlistUuid_,
         int kind_,
-        string userId_)
+        std::string userId_)
         : title(std::move(title_))
         , revision(revision_)
         , trackCount(trackCount_)
@@ -23,12 +23,12 @@ namespace yandex_music
         , userId(std::move(userId_)) 
     {}
 
-    string Playlist::getTitle() const 
+    std::string Playlist::getTitle() const 
     {
         return title;
     }
 
-    void Playlist::setTitle(const string &title_) 
+    void Playlist::setTitle(const std::string &title_) 
     {
         title = title_;
     }
@@ -53,12 +53,12 @@ namespace yandex_music
         trackCount = trackCount_;
     }
 
-    string Playlist::getPlaylistUuid() const 
+    std::string Playlist::getPlaylistUuid() const 
     {
         return playlistUuid;
     }
 
-    void Playlist::setPlaylistUuid(const string &playlistUuid_) 
+    void Playlist::setPlaylistUuid(const std::string &playlistUuid_) 
     {
         playlistUuid = playlistUuid_;
     }
@@ -73,7 +73,7 @@ namespace yandex_music
         kind = kind_;
     }
 
-    void Playlist::setId(const string &id_) 
+    void Playlist::setId(const std::string &id_) 
     {
         userId = id_;
     }
@@ -146,7 +146,7 @@ namespace yandex_music
         assert(rTracks.IsArray());
         for (i = 0; i < rTracks.Size(); ++i) // Uses SizeType instead of size_t
         {
-            std::vector<string> processed_artists;
+            std::vector<std::string> processed_artists;
             std::vector<int> processed_albums;
 
             const rapidjson::Value &track = rTracks[i]["track"];
@@ -154,13 +154,13 @@ namespace yandex_music
             /// Processing artists
             for (j = 0; j < track["artists"].Size(); ++j)
                 for (auto &artist: track["artists"][j].GetObject())
-                    if (string(artist.name.GetString()) == "name")
+                    if (std::string(artist.name.GetString()) == "name")
                         processed_artists.emplace_back(artist.value.GetString());
 
             /// Processing albums
             for (j = 0; j < track["albums"].Size(); ++j)
                 for (auto &album: track["albums"][j].GetObject())
-                    if (string(album.name.GetString()) == "id")
+                    if (std::string(album.name.GetString()) == "id")
                         processed_albums.emplace_back(album.value.GetInt());
 
 //        for (auto& it : track.GetObject())
@@ -184,7 +184,7 @@ namespace yandex_music
     }
 
 
-    void Playlist::setOutput(const string &output_folder_) 
+    void Playlist::setOutput(const std::string &output_folder_) 
     {
         Playlist::output_folder = output_folder_;
     }

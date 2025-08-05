@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 
+
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -114,7 +115,16 @@ int main()
     svr.set_logger(logger);
 
     // Todo: create method initializeTables()
-    PostgreSQL::createTables();
+    std::string db_name = std::getenv("DB_NAME");
+    std::string db_user = std::getenv("DB_USER");
+    std::string db_password = std::getenv("DB_PASSWORD");
+    std::string db_host = std::getenv("DB_HOST");
+    std::string db_port = std::getenv("DB_PORT");
+    std::string db_sslmode = std::getenv("DB_SSLMODE");
+
+    std::map<std::string, std::string> m;
+    PostgreSQL postgres {db_name, db_user, db_password, db_host, db_port};
+    postgres.createTables();
 
     // Todo: create method fillTables()
     // PostgreSQL::fillTables();
@@ -302,7 +312,7 @@ int main()
         std::string confirmation = document["confirmation"].GetString();
         std::string email = document["email"].GetString();
 
-        int insertion = PostgreSQL::insertNewUser(username, email, password);
+        int insertion = postgres.insertNewUser(username, email, password);
         if (insertion == 0)
             res.set_content(fmt::format("{\"username\": \"{}\", \"auth\": true, \"message\": \"\"}", username), "text/json");
         else
@@ -316,7 +326,7 @@ int main()
         std::string username = document["username"].GetString();
         std::string password = document["password"].GetString();
 
-        if (bool check = PostgreSQL::searchUser(username, password); check)
+        if (bool check = postgres.searchUser(username, password); check)
             res.set_content(
                 fmt::format("{\"username\": \"{}\", \"auth\": true, \"message\": \"\"}", username), "text/json");
         else
@@ -332,13 +342,13 @@ int main()
         std::string tracks;
         std::string category = req.path_params.at("category");
         std::cout << category << "\n";
-        PostgreSQL::getCategoryTracks(category, tracks);
+        postgres.getCategoryTracks(category, tracks);
         res.set_content(tracks, "text/json");
    });
 
    svr.Get("/music/categories", [&](const httplib::Request& req, httplib::Response& res) {
         std::vector<std::string> categories;
-        PostgreSQL::getCategories(categories);
+        postgres.getCategories(categories);
         std::string content = "{\"categories\": [";
         for (auto & category : categories)
             content += "{\"name\": \"" + category + "\"},";

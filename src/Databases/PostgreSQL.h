@@ -1,21 +1,34 @@
+#include <cstdlib>
 #include <pqxx/pqxx>
 
 class PostgreSQL 
 {
 public:
 	PostgreSQL() = default;
+	PostgreSQL(
+		std::string dbname_,
+		std::string user_,
+		std::string password_,
+		std::string host_,
+		std::string port_);
 	~PostgreSQL() = default;
 
 	int createTable();
 	
-	static pqxx::connection openConnection();
-	static void createTables();
-	static void fillTables();
+	pqxx::connection openConnection();
+	void createTables();
+	void fillTables();
 
-	static void executeQueries(std::vector<std::string> & queries);
-	static void getCategories(std::vector<std::string> & categories);
-	static void getCategoryTracks(std::string & category, std::string & tracks);
+	void executeQueries(std::vector<std::string> & queries);
+	void getCategories(std::vector<std::string> & categories);
+	void getCategoryTracks(std::string & category, std::string & tracks);
 
-	static int insertNewUser(std::string name, std::string email, std::string password);
-	static bool searchUser(std::string name, std::string password);
+	int insertNewUser(std::string name, std::string email, std::string password);
+	bool searchUser(std::string name, std::string password);
+
+	std::string dbname;
+	std::string user;
+	std::string password;
+	std::string host;
+	std::string port;
 };

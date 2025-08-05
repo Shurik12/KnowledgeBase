@@ -84,17 +84,33 @@ int PostgreSQL::createTable()
 	return 0;
 }
 
+PostgreSQL::PostgreSQL(
+	std::string dbname_,
+	std::string user_,
+	std::string password_,
+	std::string host_,
+	std::string port_)
+	: dbname(std::move(dbname_))
+	, user(std::move(user_))
+	, password(std::move(password_))
+	, host(std::move(host_))
+	, port(std::move(port_))
+{}
+
 pqxx::connection PostgreSQL::openConnection()
 {
 	// Connect to the database.  You can have multiple connections open
 	// at the same time, even to the same database.
-	pqxx::connection conn(
-		"dbname=knowledgebase \
-		user=postgres \
+	// dbname=knowledgebase \
+		user={postgres} \
 		password=postgres \
 		host=localhost \
 		port=5432 \
-		target_session_attrs=read-write");
+		target_session_attrs=read-write
+	pqxx::connection conn(
+		fmt::format(
+			"dbname={} user={} password={} host={} port={} target_session_attrs=read-write", 
+			dbname, user, password, host, port));
 	std::cout << "Connected to " << conn.dbname() << '\n';
 	return conn;
 }
@@ -103,7 +119,7 @@ void PostgreSQL::executeQueries(std::vector<std::string> & queries)
 {
 	try
 	{
-		pqxx::connection conn = PostgreSQL::openConnection();
+		pqxx::connection conn = openConnection();
 		pqxx::work txn{conn};
 		for (std::string & query : queries)
 		txn.exec(query);
