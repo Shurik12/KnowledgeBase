@@ -11,7 +11,7 @@
 
 #include <vector>
 
-namespace yandex_music 
+namespace YandexMusic 
 {
     class Request : public Curl 
     {
@@ -25,16 +25,13 @@ namespace yandex_music
 
         User getUser();
 
-        static bool processConfig();
-
-        void makeRequest(std::string &params, rapidjson::Document &document1);
+        void makeRequest(const std::string &params, rapidjson::Document &document1);
 
         void makeRequest(const std::string &url, tinyxml2::XMLDocument &xml_response);
 
         void makePostRequest(
-            std::string &url_postfix, 
-            std::map<std::string, 
-            std::string> &body, 
+            const std::string &url_postfix, 
+            std::map<std::string, std::string> &body, 
             rapidjson::Document &document);
 
         // std::vector<Track> getDislikedTracksIds(string user_id);
@@ -44,6 +41,6 @@ namespace yandex_music
         // Playlist changeUserPlaylist(string user, string kind);
 
     private:
-        const string url_prefix = "https://api.music.yandex.net:443/";
+        const std::string url_prefix = "https://api.music.yandex.net:443/";
     };
 }

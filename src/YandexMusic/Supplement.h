@@ -1,58 +1,45 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <iostream>
- 
-using namespace std;
+#include <optional>
 
-namespace yandex_music {
+namespace YandexMusic
+{
 
-    class Supplement {
-
+    class Supplement
+    {
     public:
-
         Supplement() = default;
 
-        Supplement(
-                int id_,
-                string lyrics_,
-                string fullLyrics_,
-                string textLanguage_,
-                bool showTranslation_,
-                bool hasRights_);
+        Supplement(int id, std::string lyrics, std::string fullLyrics,
+                   std::string textLanguage, bool showTranslation, bool hasRights)
+            : id_(id), lyrics_(std::move(lyrics)), fullLyrics_(std::move(fullLyrics)), textLanguage_(std::move(textLanguage)), showTranslation_(showTranslation), hasRights_(hasRights)
+        {
+        }
 
-        ~Supplement() = default;
+        // Getters
+        [[nodiscard]] int id() const noexcept { return id_; }
+        [[nodiscard]] const std::string &lyrics() const noexcept { return lyrics_; }
+        [[nodiscard]] const std::string &fullLyrics() const noexcept { return fullLyrics_; }
+        [[nodiscard]] const std::string &textLanguage() const noexcept { return textLanguage_; }
+        [[nodiscard]] bool showTranslation() const noexcept { return showTranslation_; }
+        [[nodiscard]] bool hasRights() const noexcept { return hasRights_; }
 
-        /// Get private members of class
-        [[nodiscard]] int getId() const;
-
-        [[nodiscard]] string getLyrics() const;
-
-        [[nodiscard]] string getFullLyrics() const;
-
-        /// Set private members of class
-        void setId(const int &value);
-
-        void setLyrics(const string &value);
-
-        void setFullLyrics(const string &value);
-
-        void setTextLanguage(const string &value);
-
-        void setShowTranslation(const bool &value);
-
-        void setHasRights(const bool &value);
+        // Setters
+        void setId(int id) noexcept { id_ = id; }
+        void setLyrics(std::string lyrics) { lyrics_ = std::move(lyrics); }
+        void setFullLyrics(std::string fullLyrics) { fullLyrics_ = std::move(fullLyrics); }
+        void setTextLanguage(std::string textLanguage) { textLanguage_ = std::move(textLanguage); }
+        void setShowTranslation(bool show) noexcept { showTranslation_ = show; }
+        void setHasRights(bool has) noexcept { hasRights_ = has; }
 
     private:
-
-        int id{};
-        string lyrics;
-        string fullLyrics;
-        string textLanguage;
-        bool showTranslation{};
-        bool hasRights{};
-
+        int id_ = 0;
+        std::string lyrics_;
+        std::string fullLyrics_;
+        std::string textLanguage_;
+        bool showTranslation_ = false;
+        bool hasRights_ = false;
     };
 
-}
+} // namespace YandexMusic

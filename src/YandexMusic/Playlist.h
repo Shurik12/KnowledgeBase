@@ -1,80 +1,83 @@
+// Playlist.h
 #pragma once
 
-#include <spdlog/spdlog.h>
 #include <string>
-#include <iostream>
 #include <vector>
 #include <unordered_set>
+#include <filesystem>
+#include <optional>
+
+#include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <YandexMusic/Track.h>
-#include <filesystem>
 
-namespace yandex_music 
+namespace YandexMusic
 {
-    class Playlist 
+    class Playlist
     {
     public:
-
         Playlist() = default;
 
-        Playlist(
-            std::string title_,
-            int revision_,
-            int trackCount_,
-            std::string playlistUuid_,
-            int kind_,
-            std::string userId_);
+        Playlist(std::string title, int revision, int trackCount,
+                 std::string playlistUuid, int kind, std::string userId);
 
-        ~Playlist() = default;
+        // Getters
+        [[nodiscard]] const std::string &title() const noexcept { return title_; }
+        [[nodiscard]] int revision() const noexcept { return revision_; }
+        [[nodiscard]] int trackCount() const noexcept { return trackCount_; }
+        [[nodiscard]] const std::string &playlistUuid() const noexcept { return playlistUuid_; }
+        [[nodiscard]] int kind() const noexcept { return kind_; }
+        [[nodiscard]] const std::string &userId() const noexcept { return userId_; }
 
-        void print();
+        [[nodiscard]] const std::vector<Track> &tracks() const noexcept { return tracks_; }
+        [[nodiscard]] const std::unordered_set<std::string> &artists() const noexcept { return artists_; }
 
-        [[nodiscard]] std::string getTitle() const;
+        // Setters
+        void setTitle(std::string title) { title_ = std::move(title); }
+        void setRevision(int revision) noexcept { revision_ = revision; }
+        void setTrackCount(int count) noexcept { trackCount_ = count; }
+        void setPlaylistUuid(std::string uuid) { playlistUuid_ = std::move(uuid); }
+        void setKind(int kind) noexcept { kind_ = kind; }
+        void setUserId(std::string id) { userId_ = std::move(id); }
+        void setTracks(const std::vector<Track>& tracks) {
+            tracks_.clear();
+            artists_.clear();
+            
+            tracks_ = tracks;
+            
+            for (const auto& track : tracks_) {
+                const auto& trackArtists = track.artists();
+                if (!trackArtists.empty()) {
+                    artists_.insert(trackArtists[0]);
+                }
+            }
+            
+            trackCount_ = static_cast<int>(tracks_.size());
+        }
 
-        void setTitle(const std::string &title_);
+        // Operations
+        void print() const;
+        void download();
+        void fetchTracks();
+        void addTracks(const std::vector<Track> &tracks);
+        void removeTracks(const std::vector<Track> &tracks);
 
-        [[nodiscard]] int getRevision() const;
-
-        void setRevision(const int &revision_);
-
-        [[nodiscard]] int getTrackCount() const;
-
-        void setTrackCount(const int &trackCount_);
-
-        [[nodiscard]] std::string getPlaylistUuid() const;
-
-        void setPlaylistUuid(const std::string &playlistUuid_);
-
-        [[nodiscard]] int getKind() const;
-
-        void setKind(const int &kind_);
-
-        void setId(const std::string &id_);
-
-//    void deleteUserPlaylist();
-        void downloadPlaylist();
-
-        void getPlaylistTracks();
-
-        void addTracksToPlaylist(const std::vector<Track> &tracks);
-        void deleteTracksFromPlaylist(std::vector<Track> &tracks);
-
-        static void setOutput(const std::string &output_);
-
-        std::vector<Track> tracks;
-        std::unordered_set<std::string> artists;
+        // Static methods
+        static void setOutputDirectory(std::string_view path);
 
     private:
+        static inline std::filesystem::path outputDirectory_;
 
-        std::string title;
-        int revision;
-        int trackCount{};
-        std::string playlistUuid;
-        int kind{};
-        std::string userId;
+        std::string title_;
+        int revision_ = 0;
+        int trackCount_ = 0;
+        std::string playlistUuid_;
+        int kind_ = 0;
+        std::string userId_;
 
-        static std::string output_folder;
-        std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
+        std::vector<Track> tracks_;
+        std::unordered_set<std::string> artists_;
+
+        std::shared_ptr<spdlog::logger> logger_ = spdlog::get("multi_sink");
     };
-
-}
+} // namespace YandexMusic

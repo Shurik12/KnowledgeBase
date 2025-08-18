@@ -1,9 +1,6 @@
 #include <fmt/format.h>
 
 #include <Common/httplib.h>
-using namespace httplib;
-
-using namespace std;
 
 int main(void)
 {
@@ -29,7 +26,7 @@ int main(void)
         std::cin >> s;
         if (auto res = cli.Get(fmt::format("/cli/{}", s)))
         {
-            if (res->status == StatusCode::OK_200)
+            if (res->status == httplib::StatusCode::OK_200)
             {
                 std::cout << res->body << std::endl;
             }

@@ -1,69 +1,62 @@
 #pragma once
 
-#include <fstream>
-#include <spdlog/spdlog.h>
-
 #include <string>
-#include <algorithm>
+#include <vector>
 #include <set>
-#include <YandexMusic/Playlist.h>
-#include <Common/tinyxml2.h>
-#include <rapidjson/document.h>
+#include <filesystem>
+#include <optional>
 
-namespace yandex_music 
+#include <spdlog/spdlog.h>
+#include <rapidjson/document.h>
+#include <YandexMusic/Playlist.h>
+
+namespace YandexMusic
 {
-    class User 
+    class User
     {
     public:
-
         User() = default;
-        explicit User(std::string id_);
+        explicit User(std::string id);
 
-        ~User() = default;
+        // Getters
+        [[nodiscard]] const std::string &id() const noexcept { return id_; }
+        std::vector<Playlist> &playlists() noexcept { return playlists_; }
+        [[nodiscard]] const std::vector<Track> &likedTracks() const noexcept { return likedTracks_; }
+        [[nodiscard]] const std::vector<Track> &tracksWithoutPlaylists() const noexcept { return tracksWithoutPlaylists_; }
 
-        [[nodiscard]] std::string getId() const;
+        // Playlist operations
+        void fetchPlaylists();
+        Playlist fetchPlaylist(int kind) const;
+        Playlist createPlaylist(std::string_view title) const;
+        void renamePlaylist(int kind, std::string_view newTitle) const;
+        void deletePlaylist(int kind) const;
 
-        void getUserPlaylists();
+        // Track operations
+        static std::vector<Track> fetchTracks(const std::vector<std::string> &trackIds);
+        void fetchLikedTracks();
+        void analyzeTracksWithoutPlaylists();
 
-        static void getTracks(std::vector<Track> &tracks);
+        // Download operations
+        static void downloadTracks(const std::vector<Track> &tracks,
+                                   std::string_view lyricsDir,
+                                   std::string_view tracksDir);
 
-        static std::vector<Track> getTracks(std::vector<std::string> &track_ids);
+        // Utility
+        void printPlaylists() const;
 
-        void getLikeTracks();
-
-        static void downloadTracks(std::vector<Track> &tracks, std::string &lyrics_dir, std::string &tracks_dir);
-
-        void getTracksWithoutPlaylist();
-
-        void printUserPlaylists();
-
-        Playlist playlistObjectFromResponse(const rapidjson::Value &response);
-
-        Playlist createPlaylist(const std::string &title);
-
-        void changePlaylistName(const int &kind, const std::string &new_title);
-
-        void deletePlaylist(const int &kind);
-
-        Playlist getPlaylist(const int &kind);
-
-        void downloadPlaylists(std::vector<Playlist> &playlists);
-
-        std::vector<Playlist> playlists;
-        std::vector<Track> like_tracks;
-        std::vector<Track> tracks_out_playlist;
-
-        std::shared_ptr<spdlog::logger> logger = spdlog::get("multi_sink");
-
-        static void setLog(const std::string &log_folder_);
-
-        static std::string log_folder;
+        // Static configuration
+        static void setLogDirectory(std::string_view path);
 
     private:
+        static inline std::filesystem::path logDirectory_;
 
-        std::string id;
-        std::string client_id;
-        std::string client_secret;
-        std::string password;
+        std::string id_;
+        std::vector<Playlist> playlists_;
+        std::vector<Track> likedTracks_;
+        std::vector<Track> tracksWithoutPlaylists_;
+
+        std::shared_ptr<spdlog::logger> logger_ = spdlog::get("multi_sink");
+
+        Playlist parsePlaylistResponse(const rapidjson::Value &response) const;
     };
-}
+} // namespace YandexMusic

@@ -3,58 +3,54 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <optional>
 
 #include <YandexMusic/DownloadInfo.h>
 #include <YandexMusic/Supplement.h>
 #include <Common/tinyxml2.h>
 
-namespace yandex_music 
+namespace YandexMusic
 {
-    class Track 
+    class Track
     {
     public:
-        Track(
-                std::string id_,
-                std::string title_,
-                std::vector<std::string> artists_,
-                std::vector<int> albums_,
-                bool available_,
-                bool lyrics_available_);
+        Track() = default;
 
-        ~Track() = default;
+        Track(std::string id, std::string title,
+              std::vector<std::string> artists,
+              std::vector<int> albums,
+              bool available = true,
+              bool lyricsAvailable = false);
 
-        /// Get private members of class
-        [[nodiscard]] std::string getId() const;
+        // Getters
+        [[nodiscard]] const std::string &id() const noexcept { return id_; }
+        [[nodiscard]] const std::string &title() const noexcept { return title_; }
+        [[nodiscard]] const std::vector<std::string> &artists() const noexcept { return artists_; }
+        [[nodiscard]] const std::vector<int> &albums() const noexcept { return albums_; }
+        [[nodiscard]] bool available() const noexcept { return available_; }
+        [[nodiscard]] bool lyricsAvailable() const noexcept { return lyricsAvailable_; }
 
-        [[nodiscard]] std::string getTitle() const;
+        [[nodiscard]] const std::optional<DownloadInfo> &downloadInfo() const noexcept { return downloadInfo_; }
+        [[nodiscard]] const std::optional<Supplement> &supplement() const noexcept { return supplement_; }
 
-        [[nodiscard]] std::vector<std::string> getArtists() const;
+        // Operations
+        void fetchDownloadInfo();
+        void fetchSupplement();
+        void download(std::string_view lyricsDir, std::string_view tracksDir) const;
 
-        [[nodiscard]] std::vector<int> getAlbums() const;
+        static std::string generateDownloadUrl(const tinyxml2::XMLDocument &xmlResponse);
 
-        [[nodiscard]] bool getAvailable() const;
-
-        [[nodiscard]] bool getLyricsAvailable() const;
-
-        void getDownloadInfo();
-
-        void getSupplement();
-
-        void downloadTrack(std::string &lyrics_dir, std::string &tracks_dir);
-
-        static void getSign(std::string &download_url, const tinyxml2::XMLDocument &xml_response);
-
-        std::shared_ptr<DownloadInfo> download_info;
-        std::shared_ptr<Supplement> supplement;
-
-        void print();
+        void print() const;
 
     private:
-        std::string id;
-        std::string title;
-        std::vector<std::string> artists;
-        std::vector<int> albums;
-        bool available = true;
-        bool lyrics_available = false;
+        std::string id_;
+        std::string title_;
+        std::vector<std::string> artists_;
+        std::vector<int> albums_;
+        bool available_ = true;
+        bool lyricsAvailable_ = false;
+
+        std::optional<DownloadInfo> downloadInfo_;
+        std::optional<Supplement> supplement_;
     };
-}
+} // namespace YandexMusic
