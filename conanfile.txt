@@ -1,13 +1,13 @@
 [requires]
 clickhouse-cpp/2.5.1
 double-conversion/3.3.0
-fmt/11.0.2
+fmt/11.2.0
 gtest/1.15.0
 libcurl/8.11.1
 libpqxx/7.10.0 
 lz4/1.9.4
 rapidjson/cci.20230929
-spdlog/1.15.0
+spdlog/1.15.3
 
 [generators]
 CMakeDeps

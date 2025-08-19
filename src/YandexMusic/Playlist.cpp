@@ -1,231 +1,187 @@
+// Playlist.cpp
 #include <YandexMusic/Playlist.h>
 #include <YandexMusic/Request.h>
 #include <rapidjson/document.h>
+
+#include <algorithm>
 #include <set>
 #include <utility>
 
-namespace yandex_music 
+namespace YandexMusic
 {
-    std::string Playlist::output_folder;
-    
-    Playlist::Playlist(
-        std::string title_,
-        int revision_,
-        int trackCount_,
-        std::string playlistUuid_,
-        int kind_,
-        std::string userId_)
-        : title(std::move(title_))
-        , revision(revision_)
-        , trackCount(trackCount_)
-        , playlistUuid(std::move(playlistUuid_))
-        , kind(kind_)
-        , userId(std::move(userId_)) 
-    {}
-
-    std::string Playlist::getTitle() const 
+    Playlist::Playlist(std::string title, int revision, int trackCount,
+                       std::string playlistUuid, int kind, std::string userId)
+        : title_(std::move(title)), revision_(revision), trackCount_(trackCount), playlistUuid_(std::move(playlistUuid)), kind_(kind), userId_(std::move(userId))
     {
-        return title;
     }
 
-    void Playlist::setTitle(const std::string &title_) 
+    void Playlist::print() const
     {
-        title = title_;
+        logger_->info("{}: {}", title_, kind_);
     }
 
-    int Playlist::getRevision() const 
+    void Playlist::download()
     {
-        return revision;
-    }
+        logger_->info("Downloading playlist: {}", title_);
 
-    void Playlist::setRevision(const int &revision_) 
-    {
-        revision = revision_;
-    }
+        const auto playlistDir = outputDirectory_ / title_;
+        std::filesystem::create_directories(playlistDir);
 
-    int Playlist::getTrackCount() const 
-    {
-        return trackCount;
-    }
-
-    void Playlist::setTrackCount(const int &trackCount_) 
-    {
-        trackCount = trackCount_;
-    }
-
-    std::string Playlist::getPlaylistUuid() const 
-    {
-        return playlistUuid;
-    }
-
-    void Playlist::setPlaylistUuid(const std::string &playlistUuid_) 
-    {
-        playlistUuid = playlistUuid_;
-    }
-
-    int Playlist::getKind() const 
-    {
-        return kind;
-    }
-
-    void Playlist::setKind(const int &kind_) 
-    {
-        kind = kind_;
-    }
-
-    void Playlist::setId(const std::string &id_) 
-    {
-        userId = id_;
-    }
-
-    void Playlist::print() 
-    {
-        logger->info(fmt::format("{}: {}", this->title, this->kind));
-    }
-
-    void Playlist::downloadPlaylist() 
-    {
-        logger->info(fmt::format("Playlist to download: {}", title));
-        std::string playlist_folder = output_folder + "/" + title;
-        std::filesystem::create_directories(playlist_folder);
-        if (title != "Like")
-            getPlaylistTracks();
-
-        std::string tracks_folder = playlist_folder + "/tracks";
-        std::string lyrics_folder = playlist_folder + "/lyrics";
-
-        std::filesystem::create_directories(tracks_folder);
-        std::filesystem::create_directories(lyrics_folder);
-
-        /// Get already loaded tracks (already on yandex disk and file system)
-        if (tracks.empty()) 
+        if (title_ != "Like")
         {
-            logger->warn(fmt::format("No tracks in playlist: {}", title));
+            fetchTracks();
+        }
+
+        if (tracks_.empty())
+        {
+            logger_->warn("No tracks in playlist: {}", title_);
             return;
         }
 
-        logger->info(fmt::format("Count tracks in playlist {}: {}", title, tracks.size()));
+        const auto tracksDir = playlistDir / "tracks";
+        const auto lyricsDir = playlistDir / "lyrics";
+        std::filesystem::create_directories(tracksDir);
+        std::filesystem::create_directories(lyricsDir);
 
-        /// Get list directory
-        std::set<std::string> loaded_tracks;
-        std::string file_name;
-        for (const auto &entry: std::filesystem::directory_iterator(tracks_folder)) 
+        // Get already downloaded tracks
+        std::set<std::string> downloadedTracks;
+        for (const auto &entry : std::filesystem::directory_iterator(tracksDir))
         {
-            file_name = entry.path().generic_string();
-            file_name = file_name.substr(file_name.find_last_of('/') + 1);
-            logger->info(fmt::format("{}", file_name));
-            loaded_tracks.emplace(file_name);
+            downloadedTracks.insert(entry.path().filename().string());
         }
-        logger->info(fmt::format("Already loaded tracks in playlist {}: {}", title, loaded_tracks.size()));
 
-        /// Download new tracks
-        std::vector<Track> tracks_for_download;
-        for (const Track &track: tracks) 
+        // Filter tracks that need to be downloaded
+        std::vector<Track> tracksToDownload;
+        for (const auto &track : tracks_)
         {
-            auto track_artists = track.getArtists();
-            std::string name = track_artists.empty() ? track.getTitle() : track_artists[0] + " - " + track.getTitle();
-            if (name.size() > 100)
-                name = name.substr(0, 100);
-            name += ".mp3";
-            if (auto search = loaded_tracks.find(name); search == loaded_tracks.end())
-                tracks_for_download.emplace_back(track);
+            std::string filename = track.artists().empty()
+                                       ? track.title()
+                                       : track.artists()[0] + " - " + track.title();
+
+            if (filename.size() > 100)
+            {
+                filename.resize(100);
+            }
+            filename += ".mp3";
+
+            if (downloadedTracks.count(filename) == 0)
+            {
+                tracksToDownload.push_back(track);
+            }
         }
-        logger->info(fmt::format("Tracks for download: {}", tracks_for_download.size()));
-        User::downloadTracks(tracks_for_download, lyrics_folder, tracks_folder);
+
+        logger_->info("Tracks to download: {}", tracksToDownload.size());
+        User::downloadTracks(tracksToDownload, lyricsDir.string(), tracksDir.string());
     }
 
-    void Playlist::getPlaylistTracks() 
+    void Playlist::fetchTracks()
     {
-        rapidjson::Document document;
         Request request;
-        std::string url{"users/" + userId + "/playlists/" + to_string(kind)};
+        rapidjson::Document document;
+        const std::string url = "users/" + userId_ + "/playlists/" + std::to_string(kind_);
+
         request.makeRequest(url, document);
-        rapidjson::SizeType i, j;
+        const auto &rTracks = document["result"]["tracks"];
 
-        const rapidjson::Value &rTracks = document["result"]["tracks"];
-        assert(rTracks.IsArray());
-        for (i = 0; i < rTracks.Size(); ++i) // Uses SizeType instead of size_t
+        if (!rTracks.IsArray())
         {
-            std::vector<std::string> processed_artists;
-            std::vector<int> processed_albums;
+            throw std::runtime_error("Invalid tracks array in response");
+        }
 
-            const rapidjson::Value &track = rTracks[i]["track"];
+        tracks_.clear();
+        artists_.clear();
 
-            /// Processing artists
-            for (j = 0; j < track["artists"].Size(); ++j)
-                for (auto &artist: track["artists"][j].GetObject())
-                    if (std::string(artist.name.GetString()) == "name")
-                        processed_artists.emplace_back(artist.value.GetString());
+        for (const auto &trackItem : rTracks.GetArray())
+        {
+            const auto &track = trackItem["track"];
 
-            /// Processing albums
-            for (j = 0; j < track["albums"].Size(); ++j)
-                for (auto &album: track["albums"][j].GetObject())
-                    if (std::string(album.name.GetString()) == "id")
-                        processed_albums.emplace_back(album.value.GetInt());
+            // Process artists
+            std::vector<std::string> trackArtists;
+            for (const auto &artist : track["artists"].GetArray())
+            {
+                if (artist.HasMember("name"))
+                {
+                    trackArtists.push_back(artist["name"].GetString());
+                }
+            }
 
-//        for (auto& it : track.GetObject())
-//            cout << it.name.GetString() << "\n";
+            // Process albums
+            std::vector<int> trackAlbums;
+            for (const auto &album : track["albums"].GetArray())
+            {
+                if (album.HasMember("id"))
+                {
+                    trackAlbums.push_back(album["id"].GetInt());
+                }
+            }
 
-            Track processed_track(
+            Track newTrack(
                 track["id"].GetString(),
                 track["title"].GetString(),
-                processed_artists,
-                processed_albums,
+                trackArtists,
+                trackAlbums,
                 track["available"].GetBool(),
                 track.HasMember("lyricsAvailable") ? track["lyricsAvailable"].GetBool() : false);
 
+            if (!trackArtists.empty())
+            {
+                artists_.insert(trackArtists[0]);
+            }
 
-            if (!processed_artists.empty())
-                artists.insert(processed_artists[0]);
-            processed_artists.clear();
-            processed_albums.clear();
-            tracks.emplace_back(processed_track);
+            tracks_.push_back(std::move(newTrack));
         }
     }
 
-
-    void Playlist::setOutput(const std::string &output_folder_) 
+    void Playlist::addTracks(const std::vector<Track> &tracks)
     {
-        Playlist::output_folder = output_folder_;
-    }
+        if (tracks.empty())
+            return;
 
-    void Playlist::addTracksToPlaylist(const std::vector<Track> &tracks) 
-    {
-        rapidjson::Document document;
         Request request;
-
-        std::string url{"users/" + userId + "/playlists/" + to_string(kind) + "/change-relative"};
-        std::map<std::string, std::string> body;
-
-        std::string diff = fmt::format(R"({{"diff":{{"op":"insert","at":{},"tracks":[)", 0);
-        for (auto track : tracks)
-            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.getId(), track.getAlbums()[0]);
-        diff.pop_back();
-        diff += fmt::format(R"(]}}}})");
-
-        body["revision"]  = to_string(revision);
-        body["diff"] = diff;
-        
-        request.makePostRequest(url, body, document);
-    }
-
-    void Playlist::deleteTracksFromPlaylist(std::vector<Track> &tracks) 
-    {
         rapidjson::Document document;
-        Request request;
-        std::string url{"users/" + userId + "/playlists/" + to_string(kind) + "/change-relative"};
-        std::map<std::string, std::string> body;
-        
-        std::string diff = fmt::format(R"({{"diff":{{"op":"delete","from":{},"to": {},"tracks":[)", 0, tracks.size());
-        for (auto track : tracks)
-            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.getId(), track.getAlbums()[0]);
-        diff.pop_back();
-        diff += fmt::format(R"(]}}}})");
+        const std::string url = "users/" + userId_ + "/playlists/" + std::to_string(kind_) + "/change-relative";
 
-        body["revision"] = to_string(revision);
-        body["diff"] = diff;
+        std::string diff = R"({"diff":{"op":"insert","at":0,"tracks":[)";
+        for (const auto &track : tracks)
+        {
+            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.id(), track.albums()[0]);
+        }
+        diff.pop_back(); // Remove trailing comma
+        diff += R"(]}})";
+
+        std::map<std::string, std::string> body{
+            {"revision", std::to_string(revision_)},
+            {"diff", diff}};
 
         request.makePostRequest(url, body, document);
     }
 
-}
+    void Playlist::removeTracks(const std::vector<Track> &tracks)
+    {
+        if (tracks.empty())
+            return;
+
+        Request request;
+        rapidjson::Document document;
+        const std::string url = "users/" + userId_ + "/playlists/" + std::to_string(kind_) + "/change-relative";
+
+        std::string diff = fmt::format(R"({{"diff":{{"op":"delete","from":{},"to":{},"tracks":[)", 0, tracks.size());
+        for (const auto &track : tracks)
+        {
+            diff += fmt::format(R"({{"id":"{}","albumId":"{}"}},)", track.id(), track.albums()[0]);
+        }
+        diff.pop_back(); // Remove trailing comma
+        diff += R"(]}}}})";
+
+        std::map<std::string, std::string> body{
+            {"revision", std::to_string(revision_)},
+            {"diff", diff}};
+
+        request.makePostRequest(url, body, document);
+    }
+
+    void Playlist::setOutputDirectory(std::string_view path)
+    {
+        outputDirectory_ = std::filesystem::path{path};
+    }
+} // namespace YandexMusic

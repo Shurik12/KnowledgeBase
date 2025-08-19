@@ -1,292 +1,265 @@
 #include <YandexMusic/User.h>
 #include <YandexMusic/Request.h>
+
+#include <algorithm>
 #include <utility>
+#include <fmt/ranges.h>
 
-namespace yandex_music 
+namespace YandexMusic
 {
-    std::string User::log_folder;
+    User::User(std::string id) : id_(std::move(id)) {}
 
-    User::User(std::string id_)
-        : id(std::move(id_)) 
-    {}
-
-    std::string User::getId() const 
+    void User::fetchPlaylists()
     {
-        return id;
-    }
-
-    void User::setLog(const std::string &log_folder_) 
-    {
-        User::log_folder = log_folder_;
-    }
-
-    void User::printUserPlaylists() 
-    {
-        logger->info("Current user playlist in format title: kind");
-        for (auto playlist: playlists)
-            playlist.print();
-    }
-
-    Playlist User::getPlaylist(const int &kind) 
-    {
-        rapidjson::Document document;
         Request request;
-        std::string url{"users/" + id + "/playlists/" + to_string(kind)};
-        request.makeRequest(url, document);
-        return playlistObjectFromResponse(document["result"]);
-    }
-
-    void User::getUserPlaylists() 
-    {
         rapidjson::Document document;
-        Request request;
-        std::string url{"users/" + id + "/playlists/list"};
-        request.makeRequest(url, document);
+        const std::string url = "users/" + id_ + "/playlists/list";
 
-        const rapidjson::Value &result = document["result"];
-        assert(result.IsArray());
-        for (rapidjson::SizeType i = 0; i < result.Size(); i++) // Uses rapidjson::SizeType instead of size_t
+        request.makeRequest(url, document);
+        const auto &result = document["result"];
+
+        if (!result.IsArray())
         {
-            Playlist playlist(
-                result[i]["title"].GetString(),
-                result[i]["revision"].GetInt(),
-                result[i]["trackCount"].GetInt(),
-                result[i]["playlistUuid"].GetString(),
-                result[i]["kind"].GetInt(),
-                id);
-            playlists.push_back(playlist);
+            throw std::runtime_error("Invalid playlists array in response");
+        }
+
+        playlists_.clear();
+        for (const auto &playlist : result.GetArray())
+        {
+            playlists_.emplace_back(
+                playlist["title"].GetString(),
+                playlist["revision"].GetInt(),
+                playlist["trackCount"].GetInt(),
+                playlist["playlistUuid"].GetString(),
+                playlist["kind"].GetInt(),
+                id_);
         }
     }
 
-    std::vector<Track> User::getTracks(std::vector<std::string> &track_ids) 
+    Playlist User::fetchPlaylist(int kind) const
     {
-        size_t i;
-        std::map<std::string, std::string> body;
-        std::string value;
-        for (i = 0; i < track_ids.size() - 1; ++i)
-            value += track_ids[i] + ",";
-        value += track_ids[i];
-        body["track-ids"] = value;
-        //  body["with-positions"] = "false";
+        Request request;
+        rapidjson::Document document;
+        const std::string url = "users/" + id_ + "/playlists/" + std::to_string(kind);
+
+        request.makeRequest(url, document);
+        return parsePlaylistResponse(document["result"]);
+    }
+
+    std::vector<Track> User::fetchTracks(const std::vector<std::string> &trackIds)
+    {
+        if (trackIds.empty())
+            return {};
 
         Request request;
         rapidjson::Document document;
-        std::string url_prefix = "tracks";
-        request.makePostRequest(url_prefix, body, document);
+        std::map<std::string, std::string> body{
+            {"track-ids", fmt::format("{}", fmt::join(trackIds, ","))}};
 
-        const rapidjson::Value &result = document["result"];
-        assert(result.IsArray());
+        request.makePostRequest("tracks", body, document);
+        const auto &result = document["result"];
+
+        if (!result.IsArray())
+        {
+            throw std::runtime_error("Invalid tracks array in response");
+        }
 
         std::vector<Track> tracks;
-        std::vector<std::string> processed_artists;
-        std::vector<int> processed_albums;
-
-        for (i = 0; i < result.Size(); ++i) // Uses rapidjson::SizeType instead of size_t
+        for (const auto &track : result.GetArray())
         {
-            /// Processing artists
-            for (auto j = 0; j < result[i]["artists"].Size(); ++j)
-                for (auto &artist: result[i]["artists"][j].GetObject())
-                    if (std::string(artist.name.GetString()) == "name")
-                        processed_artists.emplace_back(artist.value.GetString());
+            // Process artists
+            std::vector<std::string> artists;
+            for (const auto &artist : track["artists"].GetArray())
+            {
+                if (artist.HasMember("name"))
+                {
+                    artists.push_back(artist["name"].GetString());
+                }
+            }
 
-            /// Processing albums
-            for (auto j = 0; j < result[i]["albums"].Size(); ++j)
-                for (auto &album: result[i]["albums"][j].GetObject())
-                    if (std::string(album.name.GetString()) == "id")
-                        processed_albums.emplace_back(album.value.GetInt());
+            // Process albums
+            std::vector<int> albums;
+            for (const auto &album : track["albums"].GetArray())
+            {
+                if (album.HasMember("id"))
+                {
+                    albums.push_back(album["id"].GetInt());
+                }
+            }
 
-            Track processed_track(
-                result[i]["id"].GetString(),
-                result[i]["title"].GetString(),
-                processed_artists,
-                processed_albums,
-                result[i]["available"].GetBool(),
-                result[i].HasMember("lyricsAvailable") ? result[i]["lyricsAvailable"].GetBool() : false);
-
-            processed_artists.clear();
-            processed_albums.clear();
-
-            tracks.emplace_back(processed_track);
-//          for (auto& it : result[i].GetObject())
-//              cout << std::string(it.name.GetString()) << "\n";
+            tracks.emplace_back(
+                track["id"].GetString(),
+                track["title"].GetString(),
+                artists,
+                albums,
+                track["available"].GetBool(),
+                track.HasMember("lyricsAvailable") ? track["lyricsAvailable"].GetBool() : false);
         }
+
         return tracks;
     }
 
-    void User::getTracks(std::vector<Track> &tracks) 
+    void User::fetchLikedTracks()
     {
-        size_t i;
-        std::map<std::string, std::string> body;
-        std::string value{"["};
-        for (i = 0; i < tracks.size() - 1; ++i)
-            value += tracks[i].getId() + ", ";
-        value += tracks[i].getId() + "]";
-        body["track-ids"] = value;
-
         Request request;
         rapidjson::Document document;
-        std::string url_prefix = "track";
-        request.makePostRequest(url_prefix, body, document);
-    }
+        const std::string url = "users/" + id_ + "/likes/tracks";
 
-    void User::getLikeTracks() 
-    {
-        rapidjson::Document document;
-        Request request;
-        std::string url{"users/" + id + "/likes/tracks"};
         request.makeRequest(url, document);
-        rapidjson::SizeType i, j;
+        const auto &tracks = document["result"]["library"]["tracks"];
 
-        const rapidjson::Value &tracks = document["result"]["library"]["tracks"];
-
-        //    for (auto& it : rTracks.GetObject())
-        //        cout << std::string(it.name.GetString()) << "\n";
-
-        assert(tracks.IsArray());
-
-        std::vector<std::string> track_ids;
-        for (i = 0; i < tracks.Size(); ++i) // Uses rapidjson::SizeType instead of size_t
+        if (!tracks.IsArray())
         {
-            std::vector<std::string> processed_artists{};
-            track_ids.emplace_back(tracks[i]["id"].GetString());
-        }
-        like_tracks = getTracks(track_ids);
-    }
-
-    void User::downloadTracks(std::vector<Track> &tracks, std::string &lyrics_dir, std::string &tracks_dir) 
-    {
-        for (Track track: tracks)
-            if (track.getAvailable())
-                track.downloadTrack(lyrics_dir, tracks_dir);
-    }
-
-    void User::getTracksWithoutPlaylist() 
-    {
-        if (playlists.empty())
-            getUserPlaylists();
-
-        std::vector<Track> tracks_in_playlist;
-        // std::vector<Track> tracks_out_playlist;
-        std::vector<Track> tracks_out_like;
-
-        for (auto playlist: playlists) 
-        {
-            playlist.getPlaylistTracks();
-            for (const auto &track: playlist.tracks)
-                tracks_in_playlist.emplace_back(track);
+            throw std::runtime_error("Invalid liked tracks array in response");
         }
 
-        logger->info(fmt::format("Count tracks in any playlist: {}", tracks_in_playlist.size()));
-
-        getLikeTracks();
-
-        logger->info(fmt::format("All tracks: {}", like_tracks.size()));
-
-        sort(
-            like_tracks.begin(), like_tracks.end(), 
-            [](auto &a, auto &b) { return a.getId() < b.getId(); });
-        sort(
-            tracks_in_playlist.begin(), tracks_in_playlist.end(),
-            [](auto &a, auto &b) { return a.getId() < b.getId(); });
-
-        set_difference(
-            like_tracks.begin(), like_tracks.end(),
-            tracks_in_playlist.begin(), tracks_in_playlist.end(),
-            inserter(tracks_out_playlist, tracks_out_playlist.begin()),
-            [](auto &a, auto &b) { return a.getId() < b.getId(); });
-
-        set_difference(
-            tracks_in_playlist.begin(), tracks_in_playlist.end(),
-            like_tracks.begin(), like_tracks.end(),
-            inserter(tracks_out_like, tracks_out_like.begin()),
-            [](auto &a, auto &b) { return a.getId() < b.getId(); });
-
-        logger->info(fmt::format("Count tracks out of playlist: {}", tracks_out_playlist.size()));
-        logger->info(fmt::format("Count tracks out of like: {}", tracks_out_like.size()));
-        logger->info(fmt::format("Tracks out of playlist:"));
-
-        for (const auto &track: tracks_out_playlist) 
+        std::vector<std::string> trackIds;
+        for (const auto &track : tracks.GetArray())
         {
-            auto artists = track.getArtists();
-            std::string name = artists.empty() ? track.getTitle() : artists[0] + " - " + track.getTitle();
-            logger->info(fmt::format("\t{}", name));
+            trackIds.push_back(track["id"].GetString());
         }
+
+        likedTracks_ = fetchTracks(trackIds);
     }
 
-    Playlist User::createPlaylist(const std::string &title) 
+    void User::analyzeTracksWithoutPlaylists()
     {
-        rapidjson::Document document;
+        if (playlists_.empty())
+        {
+            fetchPlaylists();
+        }
+
+        std::vector<Track> allPlaylistTracks;
+        for (auto &playlist : playlists_)
+        {
+            playlist.fetchTracks();
+            allPlaylistTracks.insert(allPlaylistTracks.end(),
+                                     playlist.tracks().begin(),
+                                     playlist.tracks().end());
+        }
+
+        fetchLikedTracks();
+
+        // Sort for set operations
+        std::sort(likedTracks_.begin(), likedTracks_.end(),
+                  [](const auto &a, const auto &b)
+                  { return a.id() < b.id(); });
+
+        std::sort(allPlaylistTracks.begin(), allPlaylistTracks.end(),
+                  [](const auto &a, const auto &b)
+                  { return a.id() < b.id(); });
+
+        // Find tracks in liked but not in any playlist
+        tracksWithoutPlaylists_.clear();
+        std::set_difference(
+            likedTracks_.begin(), likedTracks_.end(),
+            allPlaylistTracks.begin(), allPlaylistTracks.end(),
+            std::back_inserter(tracksWithoutPlaylists_),
+            [](const auto &a, const auto &b)
+            { return a.id() < b.id(); });
+
+        logger_->info("Tracks without playlists: {}", tracksWithoutPlaylists_.size());
+    }
+
+    Playlist User::createPlaylist(std::string_view title) const
+    {
         Request request;
-        std::string url{"users/" + id + "/playlists/create"};
-        std::map<std::string, std::string> body;
-        body["visibility"] = "public";
-        body["title"] = title;
-        request.makePostRequest(url, body, document);
+        rapidjson::Document document;
+        const std::string url = "users/" + id_ + "/playlists/create";
 
-        /// Processing response
-        return playlistObjectFromResponse(document["result"]);
+        std::map<std::string, std::string> body{
+            {"visibility", "public"},
+            {"title", std::string{title}}};
+
+        request.makePostRequest(url, body, document);
+        return parsePlaylistResponse(document["result"]);
     }
 
-    void User::changePlaylistName(const int &kind, const std::string &new_title) 
+    void User::renamePlaylist(int kind, std::string_view newTitle) const
     {
-        rapidjson::Document document;
         Request request;
-        std::string url{"users/" + id + "/playlists/" + to_string(kind) + "/name"};
-        std::map<std::string, std::string> body;
-        body["value"] = new_title;
-        request.makePostRequest(url, body, document);
+        rapidjson::Document document;
+        const std::string url = "users/" + id_ + "/playlists/" + std::to_string(kind) + "/name";
 
-        /// Processing response
-        const rapidjson::Value &result = document["result"];
-        assert(result.IsObject());
-        for (auto &key: result.GetObject()) 
+        std::map<std::string, std::string> body{
+            {"value", std::string{newTitle}}};
+
+        request.makePostRequest(url, body, document);
+    }
+
+    void User::deletePlaylist(int kind) const
+    {
+        Request request;
+        rapidjson::Document document;
+        const std::string url = "users/" + id_ + "/playlists/" + std::to_string(kind) + "/delete";
+
+        std::map<std::string, std::string> body {};
+        request.makePostRequest(url, body, document);
+    }
+
+    void User::downloadTracks(const std::vector<Track> &tracks,
+                              std::string_view lyricsDir,
+                              std::string_view tracksDir)
+    {
+        for (const auto &track : tracks)
         {
-            if (std::string(key.name.GetString()) == "kind")
-                cout << "Playlist kind: " << key.value.GetInt() << "\n";
-            if (std::string(key.name.GetString()) == "title")
-                cout << "Playlist title: " << key.value.GetString() << "\n";
+            if (track.available())
+            {
+                track.download(lyricsDir, tracksDir);
+            }
         }
     }
 
-    void User::deletePlaylist(const int &kind) 
+    void User::printPlaylists() const
     {
-        rapidjson::Document document;
-        Request request;
-        std::string url{"users/" + id + "/playlists/" + to_string(kind) + "/delete"};
-        std::map<std::string, std::string> body;
-        request.makePostRequest(url, body, document);
-
-        /// Processing response
-        const rapidjson::Value &result = document["result"];
-        assert(result.IsString());
-        cout << "Delete playlist " + to_string(kind) << ": " << result.GetString() << "\n";
+        logger_->info("User playlists (title: kind)");
+        for (const auto &playlist : playlists_)
+        {
+            playlist.print();
+        }
     }
 
-    Playlist User::playlistObjectFromResponse(const rapidjson::Value &response) 
+    Playlist User::parsePlaylistResponse(const rapidjson::Value &response) const
     {
-        assert(response.IsObject());
+        if (!response.IsObject())
+        {
+            throw std::runtime_error("Invalid playlist response");
+        }
+
         Playlist playlist;
-        for (auto &key: response.GetObject()) 
+        playlist.setUserId(id_);
+
+        for (const auto &field : response.GetObject())
         {
-            if (std::string(key.name.GetString()) == "title")
-                playlist.setTitle(key.value.GetString());
-            if (std::string(key.name.GetString()) == "revision")
-                playlist.setRevision(key.value.GetInt());
-            if (std::string(key.name.GetString()) == "trackCount")
-                playlist.setTrackCount(key.value.GetInt());
-            if (std::string(key.name.GetString()) == "playlistUuid")
-                playlist.setPlaylistUuid(key.value.GetString());
-            if (std::string(key.name.GetString()) == "kind")
-                playlist.setKind(key.value.GetInt());
-            playlist.setId(id);
+            const std::string_view name{field.name.GetString()};
+
+            if (name == "title")
+            {
+                playlist.setTitle(field.value.GetString());
+            }
+            else if (name == "revision")
+            {
+                playlist.setRevision(field.value.GetInt());
+            }
+            else if (name == "trackCount")
+            {
+                playlist.setTrackCount(field.value.GetInt());
+            }
+            else if (name == "playlistUuid")
+            {
+                playlist.setPlaylistUuid(field.value.GetString());
+            }
+            else if (name == "kind")
+            {
+                playlist.setKind(field.value.GetInt());
+            }
         }
+
         return playlist;
     }
 
-    void User::downloadPlaylists(std::vector<Playlist> &playlists) 
+    void User::setLogDirectory(std::string_view path)
     {
-        for (Playlist playlist: playlists)
-            playlist.downloadPlaylist();
+        logDirectory_ = std::filesystem::path{path};
     }
-
-}
+} // namespace YandexMusic

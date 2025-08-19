@@ -1,14 +1,43 @@
 #include <gtest/gtest.h>
-
+#include "Common/Config.h"
+#include "Common/Logging.h"
 #include <YandexMusic/Request.h>
-#include <Common/Logging.h>
 
 int main(int argc, char **argv)
 {
-	yandex_music::Request::processConfig();
-	multi_sink_example(yandex_music::User::log_folder + "/multisink.txt");
+    // Get the config instance and load configuration
+    auto &config = Common::Config::instance();
+    if (!config.loadFromFile())
+    {
+        std::cerr << "Failed to load application configuration" << std::endl;
+        return -1;
+    }
 
-	::testing::InitGoogleTest(&argc, argv);
+    // Setup application environment
+    if (!config.setupApplicationEnvironment())
+    {
+        std::cerr << "Failed to setup application environment" << std::endl;
+        return -1;
+    }
 
-	return RUN_ALL_TESTS();
+    // Initialize logging
+    try
+    {
+        Common::multi_sink_example(config.logFolder().string() + "/multisink_test.log");
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Failed to initialize logger: " << e.what() << std::endl;
+        return -1;
+    }
+    catch (...)
+    {
+        std::cerr << "Failed to initialize logger (unknown error)" << std::endl;
+        return -1;
+    }
+
+    // Initialize Google Test
+    ::testing::InitGoogleTest(&argc, argv);
+
+    return RUN_ALL_TESTS();
 }

@@ -1,35 +1,28 @@
 #pragma once
 
 #include <string>
-#include <vector>
- 
-using namespace std;
+#include <utility>
 
-class DownloadInfo
+namespace YandexMusic
 {
+	class DownloadInfo
+	{
+	public:
+		DownloadInfo() = default;
 
-public:
+		DownloadInfo(std::string downloadInfoUrl, std::string bitrateInKbps)
+			: downloadInfoUrl_(std::move(downloadInfoUrl)), bitrateInKbps_(std::move(bitrateInKbps))
+		{
+		}
 
-	DownloadInfo()= default;
+		[[nodiscard]] const std::string &downloadInfoUrl() const noexcept { return downloadInfoUrl_; }
+		[[nodiscard]] const std::string &bitrateInKbps() const noexcept { return bitrateInKbps_; }
 
-	DownloadInfo(
-		string  downloadInfoUrl_,
-		string  bitrateInKbps_);
+		void setDownloadInfoUrl(std::string url) { downloadInfoUrl_ = std::move(url); }
+		void setBitrateInKbps(std::string bitrate) { bitrateInKbps_ = std::move(bitrate); }
 
-	~DownloadInfo()= default;
-
-    /// Get private members of class
-	[[nodiscard]] string getDownloadInfoUrl() const;
-	[[nodiscard]] string getBitrateInKbps() const;
-
-    /// Set private members of class
-	void setDownloadInfoUrl(const string& value);
-	void setBitrateInKbps(const string& value);
-
-private:
-
-	string downloadInfoUrl;
-	string bitrateInKbps;
-	string downloadTrackUrl;
-
-};
+	private:
+		std::string downloadInfoUrl_;
+		std::string bitrateInKbps_;
+	};
+} // namespace YandexMusic

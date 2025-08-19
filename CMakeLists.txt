@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(knowledgebase VERSION 0.1 DESCRIPTION "My API")
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++17")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++20")
 
 find_package(clickhouse-cpp REQUIRED)
 find_package(double-conversion REQUIRED)
@@ -20,11 +20,13 @@ set(src_sources)
 file(GLOB src_headers 
         "src/YandexMusic/*.h" 
         "src/Common/*.h"
-        "src/Databases/*.h")
+        "src/Databases/*.h"
+        "src/Server/*.h")
 file(GLOB src_sources 
         "src/YandexMusic/*.cpp" 
         "src/Common/*.cpp" 
-        "src/Databases/*.cpp")
+        "src/Databases/*.cpp"
+        "src/Server/*.cpp")
 
 set(test_headers)
 set(test_sources)
@@ -33,11 +35,13 @@ file(GLOB test_headers
         "src/YandexMusic/*.h" 
         "src/Common/*.h"
         "src/Databases/*.h"
+        "src/Server/*.h"
         "test/*.h")
 file(GLOB test_sources 
         "src/YandexMusic/*.cpp" 
         "src/Common/*.cpp" 
         "src/Databases/*.cpp"
+        "src/Server/*.cpp"
         "test/*.cpp")
 
 add_executable(knowledgebase main.cpp)
