@@ -77,22 +77,24 @@ void KnowledgeBaseServer::stop() noexcept
 
 void KnowledgeBaseServer::loadConfiguration()
 {
-    // Get the config instance
-    auto& config = Common::Config::instance();
-    
-    // Load configuration from file
-    if (!config.loadFromFile()) {
-        throw std::runtime_error("Failed to load application configuration");
-    }
-    
-    // Setup application environment
-    if (!config.setupApplicationEnvironment()) {
-        throw std::runtime_error("Failed to setup application environment");
-    }
+	// Get the config instance
+	auto &config = Common::Config::instance();
 
-    // Get the configured paths
-    log_folder_ = config.logFolder();
-    static_files_root_ = "../frontend";
+	// Load configuration from file
+	if (!config.loadFromFile())
+	{
+		throw std::runtime_error("Failed to load application configuration");
+	}
+
+	// Setup application environment
+	if (!config.setupApplicationEnvironment())
+	{
+		throw std::runtime_error("Failed to setup application environment");
+	}
+
+	// Get the configured paths
+	log_folder_ = config.logFolder();
+	static_files_root_ = "../frontend";
 }
 
 void KnowledgeBaseServer::initializeLogging()
@@ -170,7 +172,16 @@ void KnowledgeBaseServer::loadPlaylistsMap()
 
 void KnowledgeBaseServer::initializeDatabase()
 {
-	postgres_.createTables();
+	try
+	{
+		postgres_.createTables();
+		spdlog::info("Database initialized successfully");
+	}
+	catch (const std::exception &e)
+	{
+		spdlog::critical("Database initialization failed: {}", e.what());
+		throw;
+	}
 }
 
 void KnowledgeBaseServer::setupRoutes()
@@ -206,6 +217,9 @@ void KnowledgeBaseServer::setupRoutes()
             res.status = 400;
             res.set_content(fmt::format("Invalid command_id: {}", e.what()), "text/plain");
         } });
+
+	svr_.Get("/music/", [this](const httplib::Request &, httplib::Response &res)
+			 { handleMusicRoot(res); });
 
 	// Authentication
 	svr_.Post("/music/register", [this](const httplib::Request &req, httplib::Response &res)
@@ -247,6 +261,10 @@ void KnowledgeBaseServer::setupRoutes()
 	// Stop endpoint
 	svr_.Get("/stop", [this](const httplib::Request &, httplib::Response &)
 			 { stop(); });
+
+	// Catch-all route for client-side routing - MUST BE LAST
+	svr_.Get(".*", [this](const httplib::Request &req, httplib::Response &res)
+			 { handleClientSideRouting(req, res); });
 }
 
 void KnowledgeBaseServer::handleRoot(const httplib::Request &req, httplib::Response &res)
@@ -254,7 +272,7 @@ void KnowledgeBaseServer::handleRoot(const httplib::Request &req, httplib::Respo
 	handleStaticFile("index.html", req, res);
 }
 
-void KnowledgeBaseServer::handleStaticFile(std::string_view path, const httplib::Request &req, httplib::Response &res)
+void KnowledgeBaseServer::handleStaticFile(std::string_view path, const httplib::Request & /*req*/, httplib::Response &res)
 {
 	const auto full_path = static_files_root_ / path;
 
@@ -481,14 +499,49 @@ void KnowledgeBaseServer::handleLogout(httplib::Response &res)
 
 void KnowledgeBaseServer::handleCategory(std::string_view category, httplib::Response &res)
 {
-    spdlog::info("Requested category: {}", category);
-    
-    // Create a named string variable instead of temporary
-    std::string categoryStr(category);
-    std::string tracks;
-    
-    postgres_.getCategoryTracks(categoryStr, tracks);
-    res.set_content(tracks, "application/json");
+	spdlog::info("Requested category: {}", category);
+
+	try
+	{
+		std::string categoryStr(category);
+		std::string tracks;
+
+		// Check if the category exists and get tracks
+		postgres_.getCategoryTracks(categoryStr, tracks);
+		if (category.empty())
+		{
+			spdlog::warn("Category not found or empty: {}", category);
+
+			// Return empty tracks array instead of failing
+			res.set_content(R"({"tracks": []})", "application/json");
+			return;
+		}
+
+		// Validate that tracks contains valid JSON
+		rapidjson::Document doc;
+		doc.Parse(tracks.c_str());
+
+		if (doc.HasParseError())
+		{
+			spdlog::error("Invalid JSON from database for category: {}", category);
+			res.status = 500;
+			res.set_content(
+				fmt::format(R"({{"error": "Server error processing category {}", "tracks": []}})", category),
+				"application/json");
+			return;
+		}
+
+		// Success - return the tracks
+		res.set_content(tracks, "application/json");
+	}
+	catch (const std::exception &e)
+	{
+		spdlog::error("Exception in handleCategory for {}: {}", category, e.what());
+		res.status = 500;
+		res.set_content(
+			fmt::format(R"({{"error": "Server error: {}", "tracks": []}})", e.what()),
+			"application/json");
+	}
 }
 
 std::string KnowledgeBaseServer::buildCategoriesJson(const std::vector<std::string> &categories)
@@ -508,7 +561,88 @@ std::string KnowledgeBaseServer::buildCategoriesJson(const std::vector<std::stri
 
 void KnowledgeBaseServer::handleCategories(httplib::Response &res)
 {
-	std::vector<std::string> categories;
-	postgres_.getCategories(categories);
-	res.set_content(buildCategoriesJson(categories), "application/json");
+	try
+	{
+		std::vector<std::string> categories;
+		postgres_.getCategories(categories);
+
+		res.set_content(buildCategoriesJson(categories), "application/json");
+	}
+	catch (const std::exception &e)
+	{
+		spdlog::error("Exception in handleCategories: {}", e.what());
+		res.status = 500;
+		res.set_content(R"({"categories": []})", "application/json");
+	}
+}
+
+void KnowledgeBaseServer::handleMusicRoot(httplib::Response &res)
+{
+	try
+	{
+		spdlog::info("Handling /music/ endpoint");
+
+		// Check for session cookie or authentication token
+		// This is a simplified example - you'd need proper session management
+
+		// For now, check if there's an active session
+		// You should implement proper session validation here
+
+		std::string response;
+
+		// Example: Check if user is authenticated via session
+		// if (isUserAuthenticated(req)) {
+		//   std::string username = getAuthenticatedUsername();
+		//   response = fmt::format(R"({{"username": "{}", "auth": true, "message": ""}})", username);
+		// } else {
+		response = R"({"username": "", "auth": false, "message": ""})";
+		// }
+
+		// Set proper cache control headers
+		res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
+		res.set_header("Pragma", "no-cache");
+		res.set_header("Expires", "0");
+
+		res.set_content(response, "application/json");
+	}
+	catch (const std::exception &e)
+	{
+		spdlog::error("Exception in handleMusicRoot: {}", e.what());
+		res.status = 500;
+		res.set_content(R"({"username": "", "auth": false, "message": "Server error"})", "application/json");
+	}
+}
+
+void KnowledgeBaseServer::handleClientSideRouting(const httplib::Request &req, httplib::Response &res)
+{
+	// List of API endpoints that should not serve index.html
+	static const std::set<std::string> apiEndpoints = {
+		"/music/", "/music/register", "/music/login", "/music/logout",
+		"/music/category/", "/music/categories", "/music/shurik_music",
+		"/mediafiles/", "/public/", "/src/", "/cli/"};
+
+	// Check if this is an API endpoint
+	for (const auto &endpoint : apiEndpoints)
+	{
+		if (req.path.find(endpoint) == 0)
+		{
+			// This is an API endpoint, return 404 for unknown API routes
+			res.status = 404;
+			res.set_content("Not Found", "text/plain");
+			return;
+		}
+	}
+
+	// Serve index.html for client-side routing
+	const auto full_path = static_files_root_ / "index.html";
+
+	if (!fs::exists(full_path))
+	{
+		spdlog::error("Index file not found: {}", full_path.string());
+		res.status = 404;
+		res.set_content("Page not found", "text/plain");
+		return;
+	}
+
+	res.set_file_content(full_path.string());
 }

@@ -43,7 +43,7 @@ int PostgreSQL::createTable()
 		// Execute a statement, and check that it returns 0 rows of data.
 		// This will throw pqxx::unexpected_rows if the query returns rows.
 		std::cout << "Doubling all employees' salaries...\n";
-		tx.exec0("UPDATE employee SET salary = salary*2");
+		tx.exec("UPDATE employee SET salary = salary*2");
 
 		// Shorthand: conveniently query a single value from the database.
 		int my_salary = tx.query_value<int>(
@@ -99,14 +99,15 @@ PostgreSQL::PostgreSQL(
 
 pqxx::connection PostgreSQL::openConnection()
 {
-	// Connect to the database.  You can have multiple connections open
-	// at the same time, even to the same database.
-	// dbname=knowledgebase \
-		user={postgres} \
-		password=postgres \
-		host=localhost \
-		port=5432 \
-		target_session_attrs=read-write
+	/*
+	 * Connection string format:
+	 * dbname=knowledgebase
+	 * user=postgres
+	 * password=postgres
+	 * host=localhost
+	 * port=5432
+	 * target_session_attrs=read-write
+	 */
 	pqxx::connection conn(
 		fmt::format(
 			"dbname={} user={} password={} host={} port={} target_session_attrs=read-write", 

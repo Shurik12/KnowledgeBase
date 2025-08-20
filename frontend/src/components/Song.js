@@ -1,73 +1,93 @@
-import React from 'react';
-import { ListGroup } from 'react-bootstrap';
-import { RiPauseCircleFill, RiPlayCircleFill, RiMore2Line, RiHeartFill, RiHeartLine, RiDeleteBin3Line } from "react-icons/ri";
-import { BrowserRouter as Router, Link, NavLink, Route } from 'react-router-dom';
+import React, { useState } from 'react';
+import { ListGroup, Button } from 'react-bootstrap';
+import {
+  RiPauseCircleFill,
+  RiPlayCircleFill,
+  RiMore2Line,
+  RiHeartFill,
+  RiHeartLine,
+  RiDeleteBin3Line
+} from "react-icons/ri";
+import { Link } from 'react-router-dom';
 import ReactPlayer from "react-player";
 
-class Song extends React.Component {
+const Song = ({ track, user, onLike, onDelete }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLiked, setIsLiked] = useState(track.like.includes(user));
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      track: this.props.track,
-      user: this.props.user,
-      playing: false,
-      isFetching: true,
-      error: null
-    };
-    this.handleClickLike = this.handleClickLike.bind(this);
-  }
-
-  handleClickLike(event) {
-    const user = this.state.user;
-    var track = this.state.track;
-    fetch("/music/like_track", { method: "post", body: JSON.stringify(track) });
-    if (track.like.includes(user)) {
-      track.like.splice(track.like.indexOf(user), 1)
-    } else {
-      track.like.push(user);
+  const handleLike = async () => {
+    try {
+      await fetch("/music/like_track", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(track)
+      });
+      setIsLiked(!isLiked);
+      onLike?.(track.id, !isLiked);
+    } catch (error) {
+      console.error('Error liking track:', error);
     }
-    this.setState({
-      track: track,
-    })
-    event.preventDefault();
-  }
+  };
 
-  render() {
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
 
-    const track = this.state.track;
-    const user = this.state.user;
-    return (
-      <>
-        <ListGroup className="d-flex" horizontal>
-          <ListGroup.Item className="col p-2 border-0" >
-            {track["name"]}
-            <div>
-              <ReactPlayer
-                // url={`/mediafiles/${track["author"]} - ${track["name"]}.mp3`}
-                url={"https://www.dropbox.com/scl/fi/q4z5ivywefkpsag94xj9i/System-Of-A-Down-Mr.-Jack.mp3?rlkey=2pvx6uf7s122vbdaje5b3ljr9&st=p941vvs2&dl=0"}
-                width="100%"
-                height="100%"
-                playing={false}
-                controls={true}
-              />
-            </div>
-          </ListGroup.Item>
-          <ListGroup.Item className="mr-auto p-2 col border-0">
-            <Link className="text-success" to={`/authors/${track["author"]}`} >{track["author"]}</Link>
-          </ListGroup.Item>
-          {
-            track["like"].includes(user)
-              ? <ListGroup.Item className="p-2 border-0"><RiHeartFill onClick={this.handleClickLike} /></ListGroup.Item>
-              : <ListGroup.Item className="p-2 border-0"><RiHeartLine onClick={this.handleClickLike} /></ListGroup.Item>
-          }
-          <ListGroup.Item className="p-2 border-0"><RiDeleteBin3Line /></ListGroup.Item>
-          <ListGroup.Item className="p-2 border-0"><RiMore2Line /></ListGroup.Item>
+  return (
+    <ListGroup horizontal className="song-item">
+      <ListGroup.Item className="song-controls">
+        <Button
+          variant="link"
+          onClick={handlePlayPause}
+          className="p-0"
+        >
+          {isPlaying ? <RiPauseCircleFill /> : <RiPlayCircleFill />}
+        </Button>
+      </ListGroup.Item>
 
-        </ListGroup>
-      </>
-    )
-  }
-}
+      <ListGroup.Item className="song-info flex-grow-1">
+        <div className="song-title">{track.name}</div>
+        <Link
+          to={`/authors/${track.author}`}
+          className="text-success song-author"
+        >
+          {track.author}
+        </Link>
+      </ListGroup.Item>
 
-export default Song;
+      <ListGroup.Item className="song-actions">
+        <Button
+          variant="link"
+          onClick={handleLike}
+          className={`like-btn ${isLiked ? 'liked' : ''}`}
+        >
+          {isLiked ? <RiHeartFill /> : <RiHeartLine />}
+        </Button>
+
+        <Button variant="link" onClick={() => onDelete?.(track.id)}>
+          <RiDeleteBin3Line />
+        </Button>
+
+        <Button variant="link">
+          <RiMore2Line />
+        </Button>
+      </ListGroup.Item>
+
+      {isPlaying && (
+        <div className="audio-player">
+          <ReactPlayer
+            url={track.url || `/mediafiles/${track.author} - ${track.name}.mp3`}
+            width="100%"
+            height="40px"
+            playing={isPlaying}
+            controls={true}
+          />
+        </div>
+      )}
+    </ListGroup>
+  );
+};
+
+export default React.memo(Song);
