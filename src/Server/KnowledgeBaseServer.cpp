@@ -176,6 +176,16 @@ void KnowledgeBaseServer::initializeDatabase()
 	{
 		postgres_.createTables();
 		spdlog::info("Database initialized successfully");
+
+		bool tablesFilled = postgres_.fillTables("db_config.json");
+		if (tablesFilled)
+		{
+			spdlog::info("Database initialized with fresh data.\n");
+		}
+		else
+		{
+			spdlog::info("Database already contains data.\n");
+		}
 	}
 	catch (const std::exception &e)
 	{

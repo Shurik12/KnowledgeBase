@@ -17,7 +17,7 @@ public:
 	
 	pqxx::connection openConnection();
 	void createTables();
-	void fillTables();
+	bool fillTables(const std::string& configPath = "");
 
 	void executeQueries(std::vector<std::string> & queries);
 	void getCategories(std::vector<std::string> & categories);
