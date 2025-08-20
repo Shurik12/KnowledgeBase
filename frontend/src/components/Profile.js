@@ -1,63 +1,64 @@
-import React, { Component } from "react";
-import { render } from "react-dom";
-import { ListGroup } from 'react-bootstrap';
-
+import React, { useState, useEffect } from "react";
+import { useParams } from 'react-router-dom';
+import { ListGroup, Spinner, Alert, Button } from 'react-bootstrap';
 import { ListSong } from './ListSong';
+import useApi from '../hooks/useApi';
 
-class Profile extends React.Component {
+const Profile = () => {
+	const { username } = useParams();
+	const [profileData, setProfileData] = useState({});
+	const { callApi, loading, error, setError } = useApi();
 
-	constructor(props) {
-		super(props);
-		this.state = {
-			username: this.props.match.params.username,
-			data: {},
-			isFetching: true, 
-			error: null 
+	useEffect(() => {
+		const fetchProfile = async () => {
+			try {
+				const result = await callApi(`/music/profiles/${username}`);
+				setProfileData(result);
+			} catch (err) {
+				// Error is already set by useApi
+			}
 		};
-	}
 
-	componentDidMount() {
+		fetchProfile();
+	}, [username, callApi]);
 
-		const username = this.state.username;
+	if (loading) return (
+		<div className="text-center p-4">
+			<Spinner animation="border" />
+			<div>Loading profile...</div>
+		</div>
+	);
 
-		fetch(`/music/profiles/${username}`)
-			.then(response => response.json())
-			.then(result => this.setState({
-			  data: result,
-				isFetching: false 
-			}))
-			.catch(e => {
-			  console.log(e);
-			  this.setState({
-			    data: result,
-					isFetching: false,
-			  	error: e
-			  });
-			});
-	}
+	if (error) return (
+		<Alert variant="danger" className="m-3">
+			Error: {error}
+			<Button variant="outline-danger" size="sm" className="ms-2" onClick={() => setError(null)}>
+				Dismiss
+			</Button>
+		</Alert>
+	);
 
-	render() {
-
-		if (this.state.isFetching) return <div>...Loading</div>;
-		if (this.state.error) return <div>{`Error: ${e.message}`}</div>;
-
-		const user = this.state.username;
-		const authors = this.state.data.authors;
-
-		return ( 
-			<div className="Profile">
-				<ListGroup className="d-flex" style={{ width: '60%' }}>
-					<h3 className="text-center"> { user } </h3>
-					<h4 className="col p-2 border-0"> Like groups </h4>
-					<h6 className="col p-2 border-0"> { authors.join(", ") } </h6>
-					<h4 className="col p-2 border-0"> Like music </h4>
-					<ListSong 
-						data={ this.state.data }
-					/>
-				</ListGroup>
+	return (
+		<div className="profile-container">
+			<div className="profile-header text-center">
+				<h3>{username}</h3>
 			</div>
-		)
-	}
-}
+
+			<ListGroup className="profile-content">
+				<ListGroup.Item>
+					<h5>Liked Artists</h5>
+					<div className="authors-list">
+						{profileData.authors?.join(", ") || "No liked artists yet"}
+					</div>
+				</ListGroup.Item>
+
+				<ListGroup.Item>
+					<h5>Liked Music</h5>
+					<ListSong data={profileData} />
+				</ListGroup.Item>
+			</ListGroup>
+		</div>
+	);
+};
 
 export default Profile;

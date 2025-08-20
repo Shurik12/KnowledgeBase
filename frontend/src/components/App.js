@@ -1,8 +1,18 @@
-import React, { Component } from "react";
-import ReactDOM from "react-dom/client";
-import { BrowserRouter as HashRouter, Link, Route, Routes } from 'react-router-dom'
-import { Nav, Navbar, NavDropdown, InputGroup, FormControl, Button, ListGroup, Form } from 'react-bootstrap';
-import { BsSearch } from "react-icons/bs";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import {
+	Navbar,
+	Nav,
+	Form,
+	FormControl,
+	InputGroup,
+	Button,
+	Container,
+	Spinner,
+	Alert,
+	Modal // Added Modal import
+} from 'react-bootstrap';
+import { BsSearch, BsX } from "react-icons/bs"; // Added BsX for close icon
 
 import AllMusic from './AllMusic';
 import WelcomePage from './WelcomePage';
@@ -10,230 +20,566 @@ import Categories from './Categories';
 import Category from './Category';
 import Author from './Author';
 import Profile from './Profile';
+import { UserProvider, useUser } from './context/UserContext';
+import './App.css';
 
+const App = () => {
+	const [user, setUser] = useState({
+		username: "",
+		auth: false,
+		message: ""
+	});
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [showLoginModal, setShowLoginModal] = useState(false); // Added modal state
+	const [showSignupModal, setShowSignupModal] = useState(false); // Added modal state
 
-class App extends Component {
+	useEffect(() => {
+		// Try to load user data from localStorage first for faster UI
+		const savedUser = localStorage.getItem('userAuth');
+		if (savedUser) {
+			try {
+				const parsedUser = JSON.parse(savedUser);
+				setUser(parsedUser);
+			} catch (e) {
+				console.warn('Failed to parse saved user data:', e);
+			}
+		}
 
-	constructor(props) {
-		super(props);
-		this.state = {
-			username: "",
-			auth: false,
-			message: "",
-			isFetching: false,
-			error: null
-		};
-		this.handleFetch = this.handleFetch.bind(this);
-		this.handleSubmitLogin = this.handleSubmitLogin.bind(this);
-		this.handleSubmitSignUp = this.handleSubmitSignUp.bind(this);
-		this.handleSubmitLogout = this.handleSubmitLogout.bind(this);
-	}
+		fetchUserData();
+	}, []);
 
-	handleFetch(url, data) {
-		fetch(url, { method: "post", body: JSON.stringify(data) })
-			.then(response => response.json())
-			.then(result => this.setState({
-				username: result["username"],
-				auth: result["auth"],
-				message: result["message"],
-				isFetching: false
-			}))
-			.catch(e => {
-				console.log(e);
-				this.setState({
-					// username: result["username"],
-					// auth: result["auth"],
-					// message: result["message"],
-					// isFetching: false,
-					// error: e
-					username: "username",
-					auth: "auth",
-					message: "message",
-					isFetching: false
-				});
+	const fetchUserData = async () => {
+		try {
+			// Add timeout to prevent hanging requests
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+			const response = await fetch('/music/', {
+				signal: controller.signal,
+				credentials: 'include' // Important for session cookies
 			});
-	}
 
-	handleSubmitLogin(event) {
+			clearTimeout(timeoutId);
 
+			if (!response.ok) {
+				if (response.status === 401) {
+					// Session expired, clear local storage
+					localStorage.removeItem('userAuth');
+					throw new Error('Session expired');
+				}
+				throw new Error(`Server error: ${response.status} ${response.statusText}`);
+			}
+
+			const result = await response.json();
+			setUser(result);
+			// Store in localStorage for persistence during refreshes
+			localStorage.setItem('userAuth', JSON.stringify(result));
+			setError(null);
+		} catch (err) {
+			console.warn('Failed to fetch user data:', err.message);
+
+			// Use cached data if available, otherwise use guest mode
+			const cachedUser = localStorage.getItem('userAuth');
+			if (cachedUser && err.name !== 'AbortError') {
+				try {
+					const parsedUser = JSON.parse(cachedUser);
+					setUser(parsedUser);
+					setError(`Connection issue: ${err.message}. Using cached session.`);
+				} catch (parseError) {
+					setUser({
+						username: "Guest",
+						auth: false,
+						message: "Using offline mode"
+					});
+					setError(`Connection issue: ${err.message}. Using demo mode.`);
+				}
+			} else if (err.name !== 'AbortError') {
+				setUser({
+					username: "Guest",
+					auth: false,
+					message: "Using offline mode"
+				});
+				setError(`Connection issue: ${err.message}. Using demo mode.`);
+			} else {
+				setError('Request timed out. Using demo mode.');
+			}
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleAuth = async (url, data) => {
+		try {
+			setIsLoading(true);
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(data),
+				credentials: 'include' // Important for session cookies
+			});
+
+			if (!response.ok) {
+				throw new Error(`Authentication failed: ${response.status}`);
+			}
+
+			const result = await response.json();
+
+			if (result.auth) {
+				// Store successful authentication in localStorage
+				localStorage.setItem('userAuth', JSON.stringify(result));
+			} else {
+				// Clear any stale auth data on failure
+				localStorage.removeItem('userAuth');
+			}
+
+			setUser(result);
+			setError(null);
+		} catch (err) {
+			setError(err.message);
+			localStorage.removeItem('userAuth');
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleLogin = async (event) => {
+		event.preventDefault();
+		const formData = new FormData(event.target);
 		const data = {
-			"username": event.target.username.value,
-			"password": event.target.password.value
+			username: formData.get('username'),
+			password: formData.get('password')
 		};
-		event.target.username.value = "";
-		event.target.password.value = "";
-		this.handleFetch('/music/login', data);
-		event.preventDefault();
-	}
 
-	handleSubmitSignUp(event) {
+		await handleAuth('/music/login', data);
+		setShowLoginModal(false); // Close modal after login
+	};
+
+	const handleSignup = async (event) => {
+		event.preventDefault();
+		const formData = new FormData(event.target);
 		const data = {
-			"username": event.target.username.value,
-			"password": event.target.password.value,
-			"confirmation": event.target.confirm_password.value,
-			"email": event.target.email.value
+			username: formData.get('username'),
+			password: formData.get('password'),
+			confirmation: formData.get('confirm_password'),
+			email: formData.get('email')
 		};
-		this.handleFetch('/music/register', data);
-		event.preventDefault();
-	}
 
-	handleSubmitLogout(event) {
-		this.setState({
-			username: "",
-			auth: false,
-			message: "",
-			isFetching: false
-		});
-		this.handleFetch('/music/logout');
-		event.preventDefault();
-	}
+		await handleAuth('/music/register', data);
+		setShowSignupModal(false); // Close modal after signup
+	};
 
-	refreshPage() {
-		window.location.reload(false);
-	}
+	const handleLogout = async () => {
+		try {
+			await fetch('/music/logout', {
+				method: 'POST',
+				credentials: 'include'
+			});
+		} catch (err) {
+			console.warn('Logout API call failed:', err);
+		} finally {
+			// Always clear local state and storage
+			setUser({ username: "", auth: false, message: "" });
+			localStorage.removeItem('userAuth');
+			setError(null);
+		}
+	};
 
-	componentDidMount() {
-		this.handleFetch('/music/');
-	}
+	// Add session refresh mechanism
+	useEffect(() => {
+		if (user.auth) {
+			const refreshInterval = setInterval(() => {
+				fetchUserData().catch(err => {
+					console.log('Session refresh failed:', err);
+				});
+			}, 5 * 60 * 1000); // Refresh every 5 minutes
 
-	render() {
+			return () => clearInterval(refreshInterval);
+		}
+	}, [user.auth]);
 
-		if (this.state.isFetching) return <div>...Loading</div>;
-		if (this.state.error) return <div>{`Error: ${e.message}`}</div>;
-
+	if (isLoading) {
 		return (
-			<HashRouter>
-				<Navbar bg="dark" variant="dark" style={{ height: "10vh" }}>
-					<Navbar.Brand href="#">
-						<Link className="navbar-brand mr-0 mr-md-2" to="/">
-							<img
-								alt=""
-								src="https://i.pinimg.com/originals/c8/eb/91/c8eb914f7ba2ffc48a4369c893b1f43f.gif"
-								width="120"
-								height="40"
-								className="d-inline-block align-top"
-							/>
-						</Link>
-					</Navbar.Brand>
-					<Navbar.Toggle aria-controls="basic-navbar-nav" />
-					{this.state.auth
-						?
-						<Navbar.Collapse id="basic-navbar-nav">
-							<Form inline>
-								<InputGroup>
-									<FormControl
-										placeholder="Search"
-										aria-label="Search"
-										aria-describedby="basic-addon1"
-									/>
-									<Button variant="outline-secondary"><BsSearch /></Button>
-								</InputGroup>
-							</Form>
-							<Nav className="mr-auto">
-								<Nav.Link>
-									<Link to="/music/shurik_music" className="navbar-nav nav-item nav-link">Music </Link>
-								</Nav.Link>
-								<Nav.Link>
-									<Link to="/categories" className="navbar-nav nav-item nav-link">Categories </Link>
-								</Nav.Link>
-								<Nav.Link>
-									<Link className="navbar-nav nav-item nav-link" to={`/profiles/${this.state.username}`}>Profile </Link>
-								</Nav.Link>
-								<NavDropdown title="Dropdown" id="basic-nav-dropdown" className="navbar-nav nav-item nav-link">
-									<NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
-									<NavDropdown.Item href="#action/3.2">Another action</NavDropdown.Item>
-									<NavDropdown.Item href="#action/3.3">Something</NavDropdown.Item>
-									<NavDropdown.Divider />
-									<NavDropdown.Item href="#action/3.4">Separated link</NavDropdown.Item>
-								</NavDropdown>
-							</Nav>
-							<Nav>
-								<Nav.Link className="navbar-nav" onClick={this.handleSubmitLogout}>
-									<Link className="navbar-nav nav-item nav-link" to={'/'}>Log out </Link>
-								</Nav.Link>
-							</Nav>
-						</Navbar.Collapse>
-						:
-						<Navbar.Collapse id="basic-navbar-nav">
-							<Nav>
-								<NavDropdown title="Sign in" alignRight>
-									<Form onSubmit={this.handleSubmitLogin}>
-										<NavDropdown.Header>Sign in with your social media account</NavDropdown.Header>
-										<ListGroup horizontal>
-											<Button className="ml-2 btn btn-primary col-sm">Facebook</Button>
-											<Button className="mx-2 btn btn-success col-sm">Twitter</Button>
-										</ListGroup>
-										<NavDropdown.Divider />
-										<div className="form-group mx-2">
-											<input type="text" name="username" className="form-control" placeholder="Username" required="required" />
-										</div>
-										<div className="form-group mx-2">
-											<input type="password" name="password" className="form-control" placeholder="Password" required="required" />
-										</div>
-										{
-											this.state.message && <div className="text-center text-danger">{this.state.message}</div>
-										}
-										<div className="mx-2">
-											<input type="submit" className="btn btn-primary btn-sm btn-block" value="Login" />
-										</div>
-										<div className="text-center mt-2">
-											<Link to="#">Forgot Your password?</Link>
-										</div>
-									</Form>
-								</NavDropdown>
-								<NavDropdown title="Sign up" alignRight>
-									<Form onSubmit={this.handleSubmitSignUp}>
-										<NavDropdown.Header>Please fill in this form to create an account!</NavDropdown.Header>
-										<div className="form-group mx-2">
-											<input type="text" className="form-control" name="username" placeholder="Username" required="required" />
-										</div>
-										<div className="form-group mx-2">
-											<input type="email" className="form-control" name="email" placeholder="Email Address" required="required" />
-										</div>
-										<div className="form-group mx-2">
-											<input type="text" className="form-control" name="password" placeholder="Password" required="required" />
-										</div>
-										<div className="form-group mx-2">
-											<input type="text" className="form-control" name="confirm_password" placeholder="Confirm Password" required="required" />
-										</div>
-										{
-											this.state.message && <div className="text-center text-danger">{this.state.message}</div>
-										}
-										<div className="form-group mx-2">
-											<label className="form-check-label">
-												<input type="checkbox" required="required" /> I accept the
-												<a href="#">Terms of Use &amp; Privacy Policy</a>
-											</label>
-										</div>
-										<div className="form-group mx-2">
-											<button type="submit" className="btn btn-success btn-sm btn-block">Sign Up</button>
-										</div>
-									</Form>
-									<div className="text-center">Already have an account? <a href="#">Login here</a></div>
-								</NavDropdown>
-							</Nav>
-						</Navbar.Collapse>
-					}
-				</Navbar>
-
-				<Routes>
-					<Route exact path='/' Component={WelcomePage} />
-					<Route path='/music/shurik_music' Component={AllMusic} />
-					<Route path='/authors/:author' Component={Author} />
-					<Route path='/profiles/:username' Component={Profile} />
-					<Route path='/categories' Component={Categories} />
-					<Route path='/category/:category' Component={Category} />
-				</Routes>
-			</HashRouter>
+			<div className="loading-container">
+				<Spinner animation="border" />
+				<div className="mt-2">Loading...</div>
+			</div>
 		);
 	}
-}
+
+	return (
+		<UserProvider user={user}>
+			<Router>
+				<div className="app">
+					<Navbar bg="dark" variant="dark" expand="lg" className="navbar-custom">
+						<Container fluid className="px-3">
+							<Navbar.Brand as={Link} to="/" className="me-0 me-md-3">
+								<img
+									alt="Shurik Music"
+									src="https://i.pinimg.com/originals/c8/eb/91/c8eb914f7ba2ffc48a4369c893b1f43f.gif"
+									width="120"
+									height="40"
+									className="d-inline-block align-top"
+								/>
+							</Navbar.Brand>
+
+							<Navbar.Toggle aria-controls="basic-navbar-nav" />
+
+							<Navbar.Collapse id="basic-navbar-nav">
+								{user.auth ? (
+									<>
+										<Form className="d-flex me-auto my-2 my-lg-0">
+											<InputGroup>
+												<FormControl
+													placeholder="Search music..."
+													aria-label="Search"
+													className="search-input"
+												/>
+												<Button variant="outline-light">
+													<BsSearch />
+												</Button>
+											</InputGroup>
+										</Form>
+
+										<Nav className="ms-auto">
+											<Nav.Link as={Link} to="/music/shurik_music" className="px-2 px-md-3">
+												Music
+											</Nav.Link>
+											<Nav.Link as={Link} to="/categories" className="px-2 px-md-3">
+												Categories
+											</Nav.Link>
+											<Nav.Link as={Link} to={`/profiles/${user.username}`} className="px-2 px-md-3">
+												Profile
+											</Nav.Link>
+											<Nav.Link onClick={handleLogout} className="px-2 px-md-3">
+												Logout
+											</Nav.Link>
+										</Nav>
+									</>
+								) : (
+									<Nav className="ms-auto">
+										<Button
+											variant="outline-light"
+											className="me-2"
+											onClick={() => setShowLoginModal(true)}
+										>
+											<i className="bi bi-box-arrow-in-right me-1"></i>
+											Sign in
+										</Button>
+										<Button
+											variant="success"
+											onClick={() => setShowSignupModal(true)}
+										>
+											<i className="bi bi-person-plus me-1"></i>
+											Sign up
+										</Button>
+									</Nav>
+								)}
+							</Navbar.Collapse>
+						</Container>
+					</Navbar>
+
+					{/* Login Modal */}
+					<Modal
+						show={showLoginModal}
+						onHide={() => setShowLoginModal(false)}
+						centered
+						dialogClassName="modal-fullscreen"
+					>
+						<Modal.Body className="auth-modal-body">
+							<div className="auth-modal-content">
+								<button
+									className="auth-close-btn"
+									onClick={() => setShowLoginModal(false)}
+								>
+									<BsX size={28} />
+								</button>
+								<LoginForm
+									onSubmit={handleLogin}
+									message={user.message}
+									onClose={() => setShowLoginModal(false)}
+								/>
+							</div>
+						</Modal.Body>
+					</Modal>
+
+					{/* Signup Modal */}
+					<Modal
+						show={showSignupModal}
+						onHide={() => setShowSignupModal(false)}
+						centered
+						dialogClassName="modal-fullscreen"
+					>
+						<Modal.Body className="auth-modal-body">
+							<div className="auth-modal-content">
+								<button
+									className="auth-close-btn"
+									onClick={() => setShowSignupModal(false)}
+								>
+									<BsX size={28} />
+								</button>
+								<SignupForm
+									onSubmit={handleSignup}
+									message={user.message}
+									onClose={() => setShowSignupModal(false)}
+								/>
+							</div>
+						</Modal.Body>
+					</Modal>
+
+					<main className="main-content">
+						<Container fluid className="px-3 px-md-4">
+							{error && (
+								<Alert variant="warning" className="mt-3 mb-0" dismissible onClose={() => setError(null)}>
+									{error}
+								</Alert>
+							)}
+
+							<Routes>
+								<Route path="/" element={<div className="welcome-route"><WelcomePageWrapper /></div>} />
+								<Route path="/music/shurik_music" element={<div className="route-container"><AuthWrapper><AllMusic /></AuthWrapper></div>} />
+								<Route path="/authors/:author" element={<div className="route-container"><AuthWrapper><Author /></AuthWrapper></div>} />
+								<Route path="/profiles/:username" element={<div className="route-container"><AuthWrapper><Profile /></AuthWrapper></div>} />
+								<Route path="/categories" element={<div className="route-container"><AuthWrapper><Categories /></AuthWrapper></div>} />
+								<Route path="/category/:category" element={<div className="route-container"><AuthWrapper><Category /></AuthWrapper></div>} />
+							</Routes>
+						</Container>
+					</main>
+				</div>
+			</Router>
+		</UserProvider>
+	);
+};
+
+// Update LoginForm component
+const LoginForm = ({ onSubmit, message, onClose }) => {
+	const [isLoading, setIsLoading] = useState(false);
+
+	const handleSubmit = async (event) => {
+		event.preventDefault();
+		setIsLoading(true);
+		await onSubmit(event);
+		setIsLoading(false);
+	};
+
+	return (
+		<div className="auth-form-container">
+			<div className="auth-form-header">
+				<h2 className="auth-form-title">
+					<i className="bi bi-music-note-beamed me-2"></i>
+					Welcome Back
+				</h2>
+				<p className="auth-form-subtitle">Sign in to your Shurik Music account</p>
+			</div>
+
+			<Form onSubmit={handleSubmit} className="auth-form">
+				<Form.Group className="mb-3">
+					<Form.Label className="auth-form-label">Username</Form.Label>
+					<Form.Control
+						type="text"
+						name="username"
+						placeholder="Enter your username"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				<Form.Group className="mb-4">
+					<Form.Label className="auth-form-label">Password</Form.Label>
+					<Form.Control
+						type="password"
+						name="password"
+						placeholder="Enter your password"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				{message && (
+					<div className="auth-form-error">
+						<i className="bi bi-exclamation-triangle me-2"></i>
+						{message}
+					</div>
+				)}
+
+				<Button
+					type="submit"
+					variant="primary"
+					className="auth-form-button"
+					disabled={isLoading}
+					size="lg"
+				>
+					{isLoading ? (
+						<>
+							<Spinner animation="border" size="sm" className="me-2" />
+							Signing in...
+						</>
+					) : (
+						<>
+							<i className="bi bi-box-arrow-in-right me-2"></i>
+							Sign In
+						</>
+					)}
+				</Button>
+
+				<div className="auth-form-footer">
+					<p className="auth-form-help">
+						<i className="bi bi-info-circle me-1"></i>
+						Demo account: <strong>user</strong> / <strong>password</strong>
+					</p>
+				</div>
+			</Form>
+		</div>
+	);
+};
+
+// Update SignupForm component
+const SignupForm = ({ onSubmit, message, onClose }) => {
+	const [isLoading, setIsLoading] = useState(false);
+
+	const handleSubmit = async (event) => {
+		event.preventDefault();
+		setIsLoading(true);
+		await onSubmit(event);
+		setIsLoading(false);
+	};
+
+	return (
+		<div className="auth-form-container">
+			<div className="auth-form-header">
+				<h2 className="auth-form-title">
+					<i className="bi bi-person-plus me-2"></i>
+					Join Shurik Music
+				</h2>
+				<p className="auth-form-subtitle">Create your account to start listening</p>
+			</div>
+
+			<Form onSubmit={handleSubmit} className="auth-form">
+				<Form.Group className="mb-3">
+					<Form.Label className="auth-form-label">Username</Form.Label>
+					<Form.Control
+						type="text"
+						name="username"
+						placeholder="Choose a username"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				<Form.Group className="mb-3">
+					<Form.Label className="auth-form-label">Email</Form.Label>
+					<Form.Control
+						type="email"
+						name="email"
+						placeholder="Enter your email"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				<Form.Group className="mb-3">
+					<Form.Label className="auth-form-label">Password</Form.Label>
+					<Form.Control
+						type="password"
+						name="password"
+						placeholder="Create a password"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				<Form.Group className="mb-4">
+					<Form.Label className="auth-form-label">Confirm Password</Form.Label>
+					<Form.Control
+						type="password"
+						name="confirm_password"
+						placeholder="Confirm your password"
+						required
+						className="auth-form-input"
+						disabled={isLoading}
+					/>
+				</Form.Group>
+
+				{message && (
+					<div className="auth-form-error">
+						<i className="bi bi-exclamation-triangle me-2"></i>
+						{message}
+					</div>
+				)}
+
+				<Button
+					type="submit"
+					variant="success"
+					className="auth-form-button"
+					disabled={isLoading}
+					size="lg"
+				>
+					{isLoading ? (
+						<>
+							<Spinner animation="border" size="sm" className="me-2" />
+							Creating Account...
+						</>
+					) : (
+						<>
+							<i className="bi bi-person-plus me-2"></i>
+							Create Account
+						</>
+					)}
+				</Button>
+
+				<div className="auth-form-footer">
+					<p className="auth-form-help">
+						<i className="bi bi-shield-check me-1"></i>
+						Your personal data is securely encrypted
+					</p>
+				</div>
+			</Form>
+		</div>
+	);
+};
+
+// Update AuthWrapper to use the context
+const AuthWrapper = ({ children }) => {
+	const navigate = useNavigate();
+	const user = useUser(); // Get user from context
+
+	useEffect(() => {
+		if (!user.auth) {
+			navigate('/');
+		}
+	}, [user.auth, navigate]);
+
+	if (!user.auth) {
+		return (
+			<div className="text-center p-4">
+				<Spinner animation="border" />
+				<div>Redirecting to login...</div>
+			</div>
+		);
+	}
+
+	return children;
+};
+
+// Update WelcomePageWrapper to use the context
+const WelcomePageWrapper = () => {
+	const navigate = useNavigate();
+	const user = useUser(); // Get user from context
+
+	useEffect(() => {
+		if (user.auth) {
+			navigate('/music/shurik_music');
+		}
+	}, [user.auth, navigate]);
+
+	return <WelcomePage />;
+};
 
 export default App;
-
-const root = ReactDOM.createRoot(document.getElementById("app"));
-root.render(
-	<React.StrictMode>
-		<App />
-	</React.StrictMode>
-);

@@ -1,23 +1,45 @@
+version: '3.8'
+
 services:
   server:
     container_name: knowledgebase
     build: ../KnowledgeBase
     ports:
-      - 9010-9020:9010-9020
-      - 8080:8080
+      - "8080:8080"
+      - "9010:9010"
     env_file:
       - ./.env.dev
     volumes:
       - ./:/root/Knowledgebase/
       - /home/alex/.conan2/:/root/.conan2/
+      - knowledgebase_node_modules:/root/Knowledgebase/node_modules
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - knowledgebase-net
+
   db:
-    container_name: postgres
-    image: postgres
-    environment:
-      - "POSTGRES_USER=website"
-      - "POSTGRES_PASSWORD=123"
-      - "POSTGRES_DB=website_dev"
+    container_name: postgres-db
+    image: postgres:16
+    env_file:
+      - ./.env.db
     ports:
       - "6432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - knowledgebase-net
+
+volumes:
+  knowledgebase_node_modules:
+  postgres_data:
+
+networks:
+  knowledgebase-net:
+    driver: bridge

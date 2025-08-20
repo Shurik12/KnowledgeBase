@@ -43,6 +43,7 @@ private:
 
     // Route handlers
     void handleRoot(const httplib::Request &req, httplib::Response &res);
+    void handleMusicRoot(httplib::Response &res);
     void handleStaticFile(std::string_view path, const httplib::Request &req, httplib::Response &res);
     void handleMediaFile(std::string_view filename, const httplib::Request &req, httplib::Response &res);
     void handleCliCommand(int command_id, httplib::Response &res);
@@ -51,6 +52,7 @@ private:
     void handleLogout(httplib::Response &res);
     void handleCategory(std::string_view category, httplib::Response &res);
     void handleCategories(httplib::Response &res);
+    void handleClientSideRouting(const httplib::Request &req, httplib::Response &res);
 
     // Helper functions
     static void validateJsonDocument(const rapidjson::Document &doc);

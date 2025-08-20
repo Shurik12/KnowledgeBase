@@ -30,6 +30,12 @@ cmake --build .
 ./restart.sh
 ```
 
+### Database PostgreSQL
+```bash
+# Connect to postgres database
+psql -h localhost -p 6432 -U website -d website_dev
+```
+
 ### Command line
 1. Put two files config.xml playlist_map.json to the binary (server) directory
 ```bash
