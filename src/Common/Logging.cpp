@@ -9,7 +9,7 @@
 namespace Common
 {
     // Initialize the unified logger
-    void multi_sink_example(const std::string& log_file)
+    void initializeLogger()
     {
         try
         {
@@ -26,13 +26,16 @@ namespace Common
             console_sink->set_level(spdlog::level::info);
 
             // Create full log file path using the configured log folder
-            std::filesystem::path full_log_path = config.logFolder() / log_file;
+            std::filesystem::path full_log_path = config.logFolder() / "knowledgebase.log";
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(full_log_path.string(), true);
             file_sink->set_level(spdlog::level::debug);
 
             // Create and register logger
             std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
             auto logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
+
+            // logger->flush_on(spdlog::level::trace);
+            spdlog::flush_every(std::chrono::seconds(5));
 
             spdlog::set_default_logger(logger);
             spdlog::set_level(spdlog::level::debug);
@@ -49,6 +52,9 @@ namespace Common
     void log_request_response(const httplib::Request &req, const httplib::Response &res)
     {
         // Build log message
+        std::string message1;
+        message1 += fmt::format("{} {} {}", req.method, req.path, req.version);
+
         std::string message;
         message += fmt::format("{} {} {}\n", req.method, req.path, req.version);
 
@@ -77,7 +83,7 @@ namespace Common
         }
 
         // Log with spdlog
-        spdlog::info("HTTP Request/Response:\n{}", message);
+        spdlog::info("HTTP Request/Response: {}", message1);
 
         // Optionally log body if needed
         if (!res.body.empty() && res.body.size() < 1024)

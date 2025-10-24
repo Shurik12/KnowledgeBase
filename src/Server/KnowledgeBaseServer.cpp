@@ -93,7 +93,6 @@ void KnowledgeBaseServer::loadConfiguration()
 	}
 
 	// Get the configured paths
-	log_folder_ = config.logFolder();
 	static_files_root_ = "../frontend";
 }
 
@@ -101,7 +100,7 @@ void KnowledgeBaseServer::initializeLogging()
 {
 	try
 	{
-		Common::multi_sink_example((log_folder_ / "multisink.log").string());
+		Common::initializeLogger();
 	}
 	catch (const std::exception &e)
 	{
@@ -176,6 +175,16 @@ void KnowledgeBaseServer::initializeDatabase()
 	{
 		postgres_.createTables();
 		spdlog::info("Database initialized successfully");
+
+		bool tablesFilled = postgres_.fillTables("db_config.json");
+		if (tablesFilled)
+		{
+			spdlog::info("Database initialized with fresh data.\n");
+		}
+		else
+		{
+			spdlog::info("Database already contains data.\n");
+		}
 	}
 	catch (const std::exception &e)
 	{
@@ -506,32 +515,7 @@ void KnowledgeBaseServer::handleCategory(std::string_view category, httplib::Res
 		std::string categoryStr(category);
 		std::string tracks;
 
-		// Check if the category exists and get tracks
 		postgres_.getCategoryTracks(categoryStr, tracks);
-		if (category.empty())
-		{
-			spdlog::warn("Category not found or empty: {}", category);
-
-			// Return empty tracks array instead of failing
-			res.set_content(R"({"tracks": []})", "application/json");
-			return;
-		}
-
-		// Validate that tracks contains valid JSON
-		rapidjson::Document doc;
-		doc.Parse(tracks.c_str());
-
-		if (doc.HasParseError())
-		{
-			spdlog::error("Invalid JSON from database for category: {}", category);
-			res.status = 500;
-			res.set_content(
-				fmt::format(R"({{"error": "Server error processing category {}", "tracks": []}})", category),
-				"application/json");
-			return;
-		}
-
-		// Success - return the tracks
 		res.set_content(tracks, "application/json");
 	}
 	catch (const std::exception &e)

@@ -158,7 +158,7 @@ namespace YandexMusic
             [](const auto &a, const auto &b)
             { return a.id() < b.id(); });
 
-        logger_->info("Tracks without playlists: {}", tracksWithoutPlaylists_.size());
+        spdlog::info("Tracks without playlists: {}", tracksWithoutPlaylists_.size());
     }
 
     Playlist User::createPlaylist(std::string_view title) const
@@ -212,7 +212,7 @@ namespace YandexMusic
 
     void User::printPlaylists() const
     {
-        logger_->info("User playlists (title: kind)");
+        spdlog::info("User playlists (title: kind)");
         for (const auto &playlist : playlists_)
         {
             playlist.print();
@@ -256,10 +256,5 @@ namespace YandexMusic
         }
 
         return playlist;
-    }
-
-    void User::setLogDirectory(std::string_view path)
-    {
-        logDirectory_ = std::filesystem::path{path};
     }
 } // namespace YandexMusic

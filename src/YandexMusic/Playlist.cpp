@@ -17,12 +17,12 @@ namespace YandexMusic
 
     void Playlist::print() const
     {
-        logger_->info("{}: {}", title_, kind_);
+        spdlog::info("{}: {}", title_, kind_);
     }
 
     void Playlist::download()
     {
-        logger_->info("Downloading playlist: {}", title_);
+        spdlog::info("Downloading playlist: {}", title_);
 
         const auto playlistDir = outputDirectory_ / title_;
         std::filesystem::create_directories(playlistDir);
@@ -34,7 +34,7 @@ namespace YandexMusic
 
         if (tracks_.empty())
         {
-            logger_->warn("No tracks in playlist: {}", title_);
+            spdlog::warn("No tracks in playlist: {}", title_);
             return;
         }
 
@@ -70,7 +70,7 @@ namespace YandexMusic
             }
         }
 
-        logger_->info("Tracks to download: {}", tracksToDownload.size());
+        spdlog::info("Tracks to download: {}", tracksToDownload.size());
         User::downloadTracks(tracksToDownload, lyricsDir.string(), tracksDir.string());
     }
 

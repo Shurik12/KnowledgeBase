@@ -33,7 +33,6 @@ private:
     std::map<int, std::set<std::string>> playlists_map_;
     std::string user_id_;
     std::filesystem::path static_files_root_ = "../frontend";
-    std::filesystem::path log_folder_;
 
     void loadConfiguration();
     void initializeDatabase();

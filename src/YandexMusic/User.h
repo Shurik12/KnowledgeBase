@@ -48,14 +48,11 @@ namespace YandexMusic
         static void setLogDirectory(std::string_view path);
 
     private:
-        static inline std::filesystem::path logDirectory_;
-
+    
         std::string id_;
         std::vector<Playlist> playlists_;
         std::vector<Track> likedTracks_;
         std::vector<Track> tracksWithoutPlaylists_;
-
-        std::shared_ptr<spdlog::logger> logger_ = spdlog::get("multi_sink");
 
         Playlist parsePlaylistResponse(const rapidjson::Value &response) const;
     };
