@@ -1,0 +1,8 @@
+build/
+config.xml
+db_config.json
+frontend/dist/
+frontend/mediafiles/
+frontend/node_modules/
+frontend/public/
+.env.db
