@@ -76,7 +76,10 @@ set_target_properties(server PROPERTIES
 if(BUILD_CLIENT)
     add_executable(client client.cpp)
     target_include_directories(client PUBLIC src)
-    target_link_libraries(client PRIVATE fmt::fmt)
+    target_link_libraries(client PRIVATE 
+        fmt::fmt
+        rapidjson
+    )
 endif()
 
 # Tests executable (conditional)

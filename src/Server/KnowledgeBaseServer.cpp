@@ -322,88 +322,257 @@ void KnowledgeBaseServer::handleMediaFile(std::string_view filename, const httpl
 	}
 }
 
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 void KnowledgeBaseServer::handleCliCommand(int command_id, httplib::Response &res)
 {
 	std::vector<YandexMusic::Track> add_tracks;
 	YandexMusic::Playlist playlist;
 
-	switch (command_id)
+	// Set JSON content type for all responses
+	res.set_header("Content-Type", "application/json");
+
+	rapidjson::Document response_doc;
+	response_doc.SetObject();
+	rapidjson::Document::AllocatorType &allocator = response_doc.GetAllocator();
+
+	try
 	{
-	case 1: // Print playlists
-		user_.fetchPlaylists();
-		user_.printPlaylists();
-		break;
-	case 2: // Get tracks without playlist
-		user_.analyzeTracksWithoutPlaylists();
-		break;
-	case 3: // Create, change and delete playlist
-		playlist = user_.createPlaylist("Test3");
-		user_.renamePlaylist(playlist.kind(), "Test4");
-		user_.fetchLikedTracks();
-		playlist.addTracks(user_.likedTracks());
-		user_.deletePlaylist(playlist.kind());
-		break;
-	case 4: // Print track
-		user_.fetchPlaylists();
-		playlist = user_.playlists()[4];
-		playlist.fetchTracks();
-		playlist.tracks()[0].print();
-		break;
-	case 5: // Download playlist
-		user_.fetchPlaylists();
-		user_.playlists()[7].download();
-		break;
-	case 6: // Download all playlists
-		user_.fetchPlaylists();
-		for (auto &pl : user_.playlists())
+		switch (command_id)
 		{
-			pl.download();
+		case 1: // Print playlists
+		{
+			user_.fetchPlaylists();
+
+			// Create playlists array
+			rapidjson::Value playlists_array(rapidjson::kArrayType);
+
+			for (const auto &pl : user_.playlists())
+			{
+				rapidjson::Value playlist_obj(rapidjson::kObjectType);
+				playlist_obj.AddMember("title",
+									   rapidjson::Value(pl.title().c_str(), allocator), allocator);
+				playlist_obj.AddMember("kind", pl.kind(), allocator);
+				playlist_obj.AddMember("trackCount", pl.trackCount(), allocator);
+				playlist_obj.AddMember("revision", pl.revision(), allocator);
+
+				playlists_array.PushBack(playlist_obj, allocator);
+			}
+
+			response_doc.AddMember("playlists", playlists_array, allocator);
+
+			// Also print to console for logging
+			user_.printPlaylists();
+			break;
 		}
-		break;
-	case 7: // Download playlist Like
-		user_.fetchLikedTracks();
-		playlist = YandexMusic::Playlist("Like", 0, 0, "", 0, user_id_);
-		playlist.setTracks(user_.likedTracks());
-		playlist.download();
-		break;
-	case 8: // Add tracks to playlist
-		if (!playlists_map_.empty())
+		case 2: // Get tracks without playlist
 		{
 			user_.analyzeTracksWithoutPlaylists();
-			for (const auto &[kind, authors] : playlists_map_)
+
+			rapidjson::Value tracks_array(rapidjson::kArrayType);
+
+			for (const auto &track : user_.tracksWithoutPlaylists())
 			{
-				playlist = user_.fetchPlaylist(kind);
-				for (const auto &track : user_.tracksWithoutPlaylists())
+				rapidjson::Value track_obj(rapidjson::kObjectType);
+				track_obj.AddMember("id",
+									rapidjson::Value(track.id().c_str(), allocator), allocator);
+				track_obj.AddMember("title",
+									rapidjson::Value(track.title().c_str(), allocator), allocator);
+
+				// Add artists array
+				rapidjson::Value artists_array(rapidjson::kArrayType);
+				for (const auto &artist : track.artists())
 				{
-					if (const auto &artists = track.artists(); !artists.empty() && authors.count(artists[0]) > 0)
-					{
-						add_tracks.push_back(track);
-					}
+					artists_array.PushBack(
+						rapidjson::Value(artist.c_str(), allocator), allocator);
 				}
-				playlist.addTracks(add_tracks);
-				add_tracks.clear();
+				track_obj.AddMember("artists", artists_array, allocator);
+				track_obj.AddMember("available", track.available(), allocator);
+
+				tracks_array.PushBack(track_obj, allocator);
 			}
+
+			response_doc.AddMember("tracks_without_playlists", tracks_array, allocator);
+			break;
 		}
-		break;
-	case 9: // Remove all tracks from playlist
-		if (!playlists_map_.empty())
+		case 3: // Create, change and delete playlist
 		{
-			for (const auto &[kind, _] : playlists_map_)
+			playlist = user_.createPlaylist("Test3");
+			user_.renamePlaylist(playlist.kind(), "Test4");
+			user_.fetchLikedTracks();
+			playlist.addTracks(user_.likedTracks());
+			user_.deletePlaylist(playlist.kind());
+
+			response_doc.AddMember("status", "success", allocator);
+			response_doc.AddMember("message", "Playlist operations completed", allocator);
+			break;
+		}
+		case 4: // Print track
+		{
+			user_.fetchPlaylists();
+			if (user_.playlists().size() > 4)
 			{
-				playlist = user_.fetchPlaylist(kind);
+				playlist = user_.playlists()[4];
 				playlist.fetchTracks();
 				if (!playlist.tracks().empty())
 				{
-					playlist.removeTracks(playlist.tracks());
+					const auto &track = playlist.tracks()[0];
+
+					rapidjson::Value track_obj(rapidjson::kObjectType);
+					track_obj.AddMember("id",
+										rapidjson::Value(track.id().c_str(), allocator), allocator);
+					track_obj.AddMember("title",
+										rapidjson::Value(track.title().c_str(), allocator), allocator);
+					track_obj.AddMember("available", track.available(), allocator);
+
+					// Add artists array
+					rapidjson::Value artists_array(rapidjson::kArrayType);
+					for (const auto &artist : track.artists())
+					{
+						artists_array.PushBack(
+							rapidjson::Value(artist.c_str(), allocator), allocator);
+					}
+					track_obj.AddMember("artists", artists_array, allocator);
+
+					response_doc.AddMember("track", track_obj, allocator);
+					track.print(); // Also print to console
+				}
+				else
+				{
+					response_doc.AddMember("error", "No tracks in playlist", allocator);
 				}
 			}
+			else
+			{
+				response_doc.AddMember("error", "Playlist not found", allocator);
+			}
+			break;
 		}
-		break;
-	default:
-		spdlog::info("No action for command_id {}", command_id);
-	}
+		case 5: // Download playlist
+		{
+			user_.fetchPlaylists();
+			if (user_.playlists().size() > 7)
+			{
+				user_.playlists()[7].download();
+				response_doc.AddMember("status", "success", allocator);
+				response_doc.AddMember("message", "Playlist download initiated", allocator);
+			}
+			else
+			{
+				response_doc.AddMember("error", "Playlist not found", allocator);
+			}
+			break;
+		}
+		case 6: // Download all playlists
+		{
+			user_.fetchPlaylists();
+			for (auto &pl : user_.playlists())
+			{
+				pl.download();
+			}
+			response_doc.AddMember("status", "success", allocator);
+			response_doc.AddMember("message", "All playlists download initiated", allocator);
+			break;
+		}
+		case 7: // Download playlist Like
+		{
+			user_.fetchLikedTracks();
+			playlist = YandexMusic::Playlist("Like", 0, 0, "", 0, user_id_);
+			playlist.setTracks(user_.likedTracks());
+			playlist.download();
+			response_doc.AddMember("status", "success", allocator);
+			response_doc.AddMember("message", "Liked tracks download initiated", allocator);
+			break;
+		}
+		case 8: // Add tracks to playlist
+		{
+			if (!playlists_map_.empty())
+			{
+				user_.analyzeTracksWithoutPlaylists();
+				int added_tracks_count = 0;
+				for (const auto &[kind, authors] : playlists_map_)
+				{
+					playlist = user_.fetchPlaylist(kind);
+					for (const auto &track : user_.tracksWithoutPlaylists())
+					{
+						if (const auto &artists = track.artists(); !artists.empty() && authors.count(artists[0]) > 0)
+						{
+							add_tracks.push_back(track);
+							added_tracks_count++;
+						}
+					}
+					playlist.addTracks(add_tracks);
+					add_tracks.clear();
+				}
+				response_doc.AddMember("status", "success", allocator);
+				response_doc.AddMember("message",
+									   rapidjson::Value(fmt::format("Added {} tracks to playlists", added_tracks_count).c_str(), allocator),
+									   allocator);
+			}
+			else
+			{
+				response_doc.AddMember("error", "No playlists map configured", allocator);
+			}
+			break;
+		}
+		case 9: // Remove all tracks from playlist
+		{
+			if (!playlists_map_.empty())
+			{
+				int removed_playlists = 0;
+				for (const auto &[kind, _] : playlists_map_)
+				{
+					playlist = user_.fetchPlaylist(kind);
+					playlist.fetchTracks();
+					if (!playlist.tracks().empty())
+					{
+						playlist.removeTracks(playlist.tracks());
+						removed_playlists++;
+					}
+				}
+				response_doc.AddMember("status", "success", allocator);
+				response_doc.AddMember("message",
+									   rapidjson::Value(fmt::format("Cleared {} playlists", removed_playlists).c_str(), allocator),
+									   allocator);
+			}
+			else
+			{
+				response_doc.AddMember("error", "No playlists map configured", allocator);
+			}
+			break;
+		}
+		default:
+			response_doc.AddMember("error",
+								   rapidjson::Value(fmt::format("Unknown command_id: {}", command_id).c_str(), allocator),
+								   allocator);
+			spdlog::info("No action for command_id {}", command_id);
+		}
 
-	res.set_content(fmt::format("Done {}!", command_id), "text/plain");
+		// Convert response to string
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		response_doc.Accept(writer);
+
+		res.set_content(buffer.GetString(), "application/json");
+	}
+	catch (const std::exception &e)
+	{
+		// Error response
+		rapidjson::Document error_doc;
+		error_doc.SetObject();
+		error_doc.AddMember("error",
+							rapidjson::Value(fmt::format("Server error: {}", e.what()).c_str(), error_doc.GetAllocator()),
+							error_doc.GetAllocator());
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		error_doc.Accept(writer);
+
+		res.status = 500;
+		res.set_content(buffer.GetString(), "application/json");
+		spdlog::error("Exception in handleCliCommand: {}", e.what());
+	}
 }
 
 void KnowledgeBaseServer::validateJsonDocument(const rapidjson::Document &doc)
