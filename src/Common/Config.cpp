@@ -51,7 +51,6 @@ namespace Common
         {
             Curl::setToken(token_);
             YandexMusic::Playlist::setOutputDirectory(output_folder_.string());
-            YandexMusic::User::setLogDirectory(log_folder_.string());
             return true;
         }
         catch (const std::exception &e)

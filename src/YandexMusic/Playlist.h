@@ -77,7 +77,5 @@ namespace YandexMusic
 
         std::vector<Track> tracks_;
         std::unordered_set<std::string> artists_;
-
-        std::shared_ptr<spdlog::logger> logger_ = spdlog::get("multi_sink");
     };
 } // namespace YandexMusic

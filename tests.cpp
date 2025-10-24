@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     // Initialize logging
     try
     {
-        Common::multi_sink_example(config.logFolder().string() + "/multisink_test.log");
+        Common::initializeLogger();
     }
     catch (const std::exception &e)
     {
